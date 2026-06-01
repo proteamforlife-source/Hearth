@@ -199,8 +199,13 @@
       <button id="cv-week" data-calview="week">Week</button>
       <button id="cv-day" data-calview="day">Day</button>
     </div>
-<div class="cal-header">
-  <div id="calNavRow" style="display:flex;align-items:center;justify-content:center;gap:4px;width:100%"></div>
+<div class="plan-wnav" id="calNavRow">
+  <button id="calPrevBtn">&#x2190; Prev</button>
+  <div style="display:flex;flex-direction:column;align-items:center;gap:4px">
+    <span id="calLabelInner"></span>
+    <button id="calTodayBtn" class="sm sx" style="font-size:.7rem;padding:2px 10px;border-radius:6px">Today</button>
+  </div>
+  <button id="calNextBtn">Next &#x2192;</button>
 </div>
     <div class="cal-legend" id="calLegend">
       <div class="cal-legend-item"><div class="cal-legend-dot" style="background:#B8967E"></div>Events</div>

@@ -131,7 +131,7 @@ function openMonthJump() {
 }
 
 function updateCalNav() {
-  var navEl = el('calNavRow'); if (!navEl) return;
+  var labelEl = el('calLabelInner'); if (!labelEl) return;
   var labelTxt = '';
   if (calView === 'month') {
     labelTxt = getMonthDatesForCal(calOffset).label;
@@ -140,13 +140,10 @@ function updateCalNav() {
     labelTxt = dates[0].toLocaleDateString('en-AU', { day: 'numeric', month: 'short' }) + ' – ' + dates[6].toLocaleDateString('en-AU', { day: 'numeric', month: 'short' });
   } else {
     var dd = new Date(); dd.setDate(dd.getDate() + calOffset);
-    labelTxt = dd.toLocaleDateString('en-AU', { weekday: 'short', day: 'numeric', month: 'long' });
+    labelTxt = dd.toLocaleDateString('en-AU', { weekday: 'long', day: 'numeric', month: 'long' });
   }
-  navEl.innerHTML =
-    '<button id="calPrevNav" style="background:none;border:none;font-size:1.1rem;cursor:pointer;padding:4px 10px;color:var(--charcoal)">&#x2190;</button>' +
-    '<span id="calLabelInner" style="font-weight:700;font-size:.92rem;color:var(--charcoal);cursor:pointer;border-bottom:1.5px dashed var(--terra);padding-bottom:1px">' + labelTxt + ' ▾</span>' +
-    '<button id="calNextNav" style="background:none;border:none;font-size:1.1rem;cursor:pointer;padding:4px 10px;color:var(--charcoal)">&#x2192;</button>' +
-    '<button id="calTodayBtn" style="background:var(--cream);border:1.5px solid var(--border);border-radius:20px;padding:4px 12px;font-size:.75rem;font-weight:700;color:var(--sage);cursor:pointer;margin-left:6px">Today</button>';
+  labelEl.textContent = labelTxt;
+  labelEl.style.cssText = 'font-weight:700;font-size:.85rem;color:var(--charcoal);cursor:pointer;border-bottom:1.5px dashed var(--terra);padding-bottom:1px';
 }
 
 function renderCalendar() {
@@ -310,8 +307,8 @@ function openCalEdit(id) {
 document.addEventListener('click', function(e) {
   var t = e.target;
 
-  if (t.id === 'calPrevNav') { calOffset--; renderCalendar(); return; }
-  if (t.id === 'calNextNav') { calOffset++; renderCalendar(); return; }
+  if (t.id === 'calPrevNav' || t.id === 'calPrevBtn') { calOffset--; renderCalendar(); return; }
+  if (t.id === 'calNextNav' || t.id === 'calNextBtn') { calOffset++; renderCalendar(); return; }
   if (t.id === 'calTodayBtn') { calOffset = 0; renderCalendar(); return; }
   if (t.id === 'calLabelInner') { openMonthJump(); return; }
 
