@@ -141,10 +141,9 @@ function updateCalNav() {
     var dd = new Date(); dd.setDate(dd.getDate() + calOffset);
     labelTxt = dd.toLocaleDateString('en-AU', { weekday: 'short', day: 'numeric', month: 'long' });
   }
-  var isMonth = calView === 'month';
   navEl.innerHTML =
     '<button id="calPrevNav" style="background:none;border:none;font-size:1.1rem;cursor:pointer;padding:4px 10px;color:var(--charcoal)">&#x2190;</button>' +
-    '<span id="calLabelInner" style="font-weight:700;font-size:.92rem;color:var(--charcoal);' + (isMonth ? 'cursor:pointer;border-bottom:1.5px dashed var(--terra);padding-bottom:1px' : '') + '">' + labelTxt + (isMonth ? ' ▾' : '') + '</span>' +
+    '<span id="calLabelInner" style="font-weight:700;font-size:.92rem;color:var(--charcoal);cursor:pointer;border-bottom:1.5px dashed var(--terra);padding-bottom:1px">' + labelTxt + ' ▾</span>' +
     '<button id="calNextNav" style="background:none;border:none;font-size:1.1rem;cursor:pointer;padding:4px 10px;color:var(--charcoal)">&#x2192;</button>' +
     '<button id="calTodayBtn" style="background:var(--cream);border:1.5px solid var(--border);border-radius:20px;padding:4px 12px;font-size:.75rem;font-weight:700;color:var(--sage);cursor:pointer;margin-left:6px">Today</button>';
 }
@@ -206,7 +205,7 @@ function renderCalWeek() {
     dates.forEach(function(d, i) {
       var dk = lKey(d); // lKey for display/event matching
       var isT = dk === today;
-      html += '<div class="cal-week-col-hdr' + (isT ? ' cal-week-today' : '') + '"><div class="cal-week-day-name">' + DAYS[i] + '</div><div class="cal-week-day-num">' + d.getDate() + '</div></div>';
+      html += '<div class="cal-week-col-hdr' + (isT ? ' cal-week-today' : '') + '" data-caldk="' + dk + '" style="cursor:pointer"><div class="cal-week-day-name">' + DAYS[i] + '</div><div class="cal-week-day-num">' + d.getDate() + '</div></div>';
     });
     html += '<div class="cal-week-time" style="font-size:.65rem;padding:4px">All day</div>';
     dates.forEach(function(d) {
@@ -303,7 +302,7 @@ document.addEventListener('click', function(e) {
   if (t.id === 'calPrevNav') { calOffset--; renderCalendar(); return; }
   if (t.id === 'calNextNav') { calOffset++; renderCalendar(); return; }
   if (t.id === 'calTodayBtn') { calOffset = 0; renderCalendar(); return; }
-  if (t.id === 'calLabelInner' && calView === 'month') { openMonthJump(); return; }
+  if (t.id === 'calLabelInner') { openMonthJump(); return; }
   if (t.id === 'calJumpClose') { var jm = el('calMonthJumpModal'); if (jm) jm.remove(); return; }
 
   var jumpBtn = t.closest('[data-jumpval]');
@@ -336,6 +335,9 @@ document.addEventListener('click', function(e) {
 });
 
 document.addEventListener('DOMContentLoaded', function() {
+
+  var calAddName = el('calAddName');
+  if (calAddName) calAddName.addEventListener('keydown', function(e) { if (e.key === 'Enter') { var s = el('calAddSave'); if (s) s.click(); } });
 
   var calAddBtn = el('calAddBtn');
   if (calAddBtn) calAddBtn.addEventListener('click', function() {
