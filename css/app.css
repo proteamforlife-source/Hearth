@@ -303,17 +303,16 @@ main{max-width:720px;margin:0 auto;padding:14px 12px}
 .cal-event-pill{border-radius:4px;padding:1px 5px;font-size:.58rem;font-weight:600;margin-bottom:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:flex;align-items:center;gap:3px}
 .cal-more{font-size:.56rem;color:var(--muted);margin-top:1px}
 /* Week view */
-.cal-week-grid{display:grid;grid-template-columns:44px repeat(7,1fr);gap:0;border:1px solid var(--border);border-radius:11px;overflow:hidden}
-.cal-week-col-hdr{background:var(--cream);padding:6px 3px;text-align:center;border-bottom:1px solid var(--border);border-right:1px solid var(--border)}
-.cal-week-col-hdr:last-child{border-right:none}
-.cal-week-time-hdr{background:var(--cream);border-bottom:1px solid var(--border);border-right:1px solid var(--border)}
-.cal-week-day-name{font-size:.62rem;font-weight:700;color:var(--muted);text-transform:uppercase}
-.cal-week-day-num{font-size:.85rem;font-weight:700;color:var(--charcoal)}
-.cal-week-today .cal-week-day-num{color:var(--terra)}
-.cal-week-today .cal-week-day-name{color:var(--terra)}
-.cal-week-events{padding:5px 3px;border-right:1px solid var(--border);min-height:80px;vertical-align:top}
-.cal-week-events:last-child{border-right:none}
-.cal-week-time{font-size:.6rem;color:var(--muted);padding:5px 4px;text-align:right;border-right:1px solid var(--border);border-bottom:1px solid var(--border)}
+.cal-week-day-row{background:#fff;border-radius:11px;border:1.5px solid var(--border);overflow:hidden;cursor:pointer;transition:box-shadow .15s}
+.cal-week-day-row:hover{box-shadow:0 2px 10px rgba(0,0,0,.08)}
+.cal-week-day-row.today{border-color:var(--terra)}
+.cal-week-day-row-hdr{display:flex;align-items:center;gap:8px;padding:8px 12px;background:var(--cream);border-bottom:1px solid var(--border)}
+.cal-week-day-row-label{font-size:.82rem;font-weight:700;color:var(--charcoal)}
+.cal-week-day-row-label.today{color:var(--terra)}
+.cal-week-today-pill{font-size:.65rem;font-weight:700;background:var(--terra);color:#fff;border-radius:20px;padding:1px 8px}
+.cal-week-day-row-items{padding:8px 12px;display:flex;flex-wrap:wrap;gap:5px}
+.cal-week-item-pill{font-size:.78rem;font-weight:600;padding:3px 9px;border-radius:20px;border:1px solid transparent;display:flex;align-items:center;gap:4px}
+.cal-week-day-row-empty{padding:8px 12px;font-size:.78rem;color:var(--muted);font-style:italic}
 /* Day view */
 .cal-day-view{background:#fff;border-radius:13px;border:1px solid var(--border);overflow:hidden}
 .cal-day-section{padding:12px 14px;border-bottom:1px solid var(--border)}

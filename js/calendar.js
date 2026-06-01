@@ -199,25 +199,29 @@ function renderCalMonth() {
 function renderCalWeek() {
   var dates = getWeekDates(calOffset);
   var today = todayKey();
-  var wk = dKey(dates[0]); // planner uses dKey
+  var wk = dKey(dates[0]);
   loadPlannerForCalendar([wk], function() {
-    var html = '<div class="cal-week-grid">';
-    html += '<div class="cal-week-time-hdr"></div>';
+    var html = '<div style="display:flex;flex-direction:column;gap:6px">';
     dates.forEach(function(d, i) {
-      var dk = lKey(d); // lKey for display/event matching
+      var dk = lKey(d);
       var isT = dk === today;
-      html += '<div class="cal-week-col-hdr' + (isT ? ' cal-week-today' : '') + '" data-caldk="' + dk + '" style="cursor:pointer"><div class="cal-week-day-name">' + DAYS[i] + '</div><div class="cal-week-day-num">' + d.getDate() + '</div></div>';
-    });
-    html += '<div class="cal-week-time" style="font-size:.65rem;padding:4px">All day</div>';
-    dates.forEach(function(d) {
-      var dk = lKey(d); // lKey for event matching
       var items = getCalItemsForDate(dk).concat(getMealsForDate(dk));
-      html += '<div class="cal-week-events" data-caldk="' + dk + '" style="cursor:pointer">';
-      items.forEach(function(item) {
-        var t = CAL_TYPES[item.type] || CAL_TYPES.personal;
-        html += '<div class="cal-event-pill" style="background:' + t.bg + ';color:' + t.color + ';margin-bottom:3px">' + t.icon + ' ' + esc(item.text.length > 12 ? item.text.slice(0, 12) + '…' : item.text) + '</div>';
-      });
-      if (!items.length) html += '<div style="height:100%;min-height:32px"></div>';
+      var dayLabel = d.toLocaleDateString('en-AU', { weekday: 'short', day: 'numeric', month: 'short' });
+      html += '<div class="cal-week-day-row' + (isT ? ' today' : '') + '" data-caldk="' + dk + '">';
+      html += '<div class="cal-week-day-row-hdr">';
+      html += '<span class="cal-week-day-row-label' + (isT ? ' today' : '') + '">' + dayLabel + '</span>';
+      if (isT) html += '<span class="cal-week-today-pill">Today</span>';
+      html += '</div>';
+      if (items.length) {
+        html += '<div class="cal-week-day-row-items">';
+        items.forEach(function(item) {
+          var t = CAL_TYPES[item.type] || CAL_TYPES.personal;
+          html += '<div class="cal-week-item-pill" style="background:' + t.bg + ';color:' + t.color + ';border-color:' + t.border + '">' + t.icon + ' ' + esc(item.text) + '</div>';
+        });
+        html += '</div>';
+      } else {
+        html += '<div class="cal-week-day-row-empty">Nothing on</div>';
+      }
       html += '</div>';
     });
     html += '</div>';
