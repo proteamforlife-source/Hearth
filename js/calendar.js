@@ -151,6 +151,9 @@ function updateCalNav() {
 
 function renderCalendar() {
   if (!el('pg-c')) return;
+  // Reset calGrid class/style before each render — week view sets plan-grid
+  var cg = el('calGrid');
+  if (cg) { cg.className = ''; cg.style.gridTemplateColumns = ''; }
   var billLeg = el('calBillLegend');
   if (billLeg) billLeg.style.display = userName === ADMIN ? 'flex' : 'none';
   ['month', 'week', 'day'].forEach(function(v) {
@@ -201,26 +204,28 @@ function renderCalWeek() {
   var today = todayKey();
   var wk = dKey(dates[0]);
   loadPlannerForCalendar([wk], function() {
-    var html = '<div style="display:flex;flex-direction:column;gap:6px">';
+    // Vertical card stack — mobile-first, consistent with day view style
+    var html = '<div style="display:flex;flex-direction:column;gap:8px">';
     dates.forEach(function(d, i) {
       var dk = lKey(d);
       var isT = dk === today;
       var items = getCalItemsForDate(dk).concat(getMealsForDate(dk));
-      var dayLabel = d.toLocaleDateString('en-AU', { weekday: 'short', day: 'numeric', month: 'short' });
-      html += '<div class="cal-week-day-row' + (isT ? ' today' : '') + '" data-caldk="' + dk + '">';
-      html += '<div class="cal-week-day-row-hdr">';
-      html += '<span class="cal-week-day-row-label' + (isT ? ' today' : '') + '">' + dayLabel + '</span>';
-      if (isT) html += '<span class="cal-week-today-pill">Today</span>';
+      var dayLabel = d.toLocaleDateString('en-AU', { weekday: 'long', day: 'numeric', month: 'short' });
+      // Card — same border/background treatment as cal-day-view
+      html += '<div class="cal-day-view" data-caldk="' + dk + '" style="cursor:pointer;' + (isT ? 'border-color:var(--terra)' : '') + '">';
+      // Header row
+      html += '<div class="cal-day-section" style="padding:8px 14px;display:flex;align-items:center;gap:8px;border-bottom:' + (items.length ? '1px solid var(--border)' : 'none') + '">';
+      html += '<span style="font-size:.85rem;font-weight:700;color:' + (isT ? 'var(--terra)' : 'var(--charcoal)') + '">' + dayLabel + '</span>';
+      if (isT) html += '<span style="font-size:.65rem;font-weight:700;background:var(--terra);color:#fff;border-radius:20px;padding:1px 8px">Today</span>';
       html += '</div>';
+      // Items
       if (items.length) {
-        html += '<div class="cal-week-day-row-items">';
+        html += '<div style="padding:8px 14px;display:flex;flex-wrap:wrap;gap:5px">';
         items.forEach(function(item) {
           var t = CAL_TYPES[item.type] || CAL_TYPES.personal;
-          html += '<div class="cal-week-item-pill" style="background:' + t.bg + ';color:' + t.color + ';border-color:' + t.border + '">' + t.icon + ' ' + esc(item.text) + '</div>';
+          html += '<div class="cal-week-pill" style="background:' + t.bg + ';color:' + t.color + '">' + t.icon + ' ' + esc(item.text) + '</div>';
         });
         html += '</div>';
-      } else {
-        html += '<div class="cal-week-day-row-empty">Nothing on</div>';
       }
       html += '</div>';
     });
