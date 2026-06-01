@@ -108,29 +108,50 @@ function renderPlanner(weekData) {
   el('planLabel').textContent = ws.toLocaleDateString('en-AU', { day: 'numeric', month: 'short' }) + ' - ' + we.toLocaleDateString('en-AU', { day: 'numeric', month: 'short' });
   var wk = dKey(ws), today = todayKey();
   function drawWeek(data) {
-    el('planGrid').style.gridTemplateColumns = 'repeat(7,1fr)';
-    el('planGrid').innerHTML = dates.map(function (d, i) {
+    // Mobile-first vertical card stack — one day per row, full meal detail
+    el('planGrid').style.gridTemplateColumns = '1fr';
+    el('planGrid').innerHTML = dates.map(function(d, i) {
       var dk = lKey(d), isT = dk === today, dayData = data[i] || {};
-      // future: contextual personal summaries belong in Planner day detail only — not in the shared week grid
-      function slotHtml(sk, lbl) {
+      function slotHtml(sk, lbl, bg) {
         var meals = dayData[sk] ? Object.values(dayData[sk]) : [];
         var winner = null, maxV = 0;
-        meals.forEach(function (m) { var vc = m.votes ? Object.keys(m.votes).length : 0; if (vc > maxV) { maxV = vc; winner = m.id; } });
-        return '<div><div class="slot-dot-' + sk.toLowerCase() + '"></div>' + meals.map(function (m) {
-          var vc = m.votes ? Object.keys(m.votes).length : 0;
-          var myV = m.votes && m.votes[userName];
-          var isW = m.id === winner && maxV > 0;
-          var slotCls={'B':'msug-b','L':'msug-l','D':'msug-d'};
-          return '<div class="msug' + (isW ? ' winner' : '') + ' ' + (isW ? '' : (slotCls[sk]||'')) + '"><div class="msug-name">' + esc(m.name) + (m.recipeId ? ' <span data-cookr="' + m.recipeId + '" style="display:inline-flex;align-items:center;cursor:pointer"><svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\"><path d=\"M21,12H3a1,1,0,0,0,0,2H8v1a3,3,0,0,0,3,3h8a3,3,0,0,0,3-3V13A1,1,0,0,0,21,12Z\" fill=\"#2A2218\"/><path d=\"M19,10a1,1,0,0,1-1-1V7a1,1,0,0,1,2,0V9A1,1,0,0,1,19,10Zm-4,0a1,1,0,0,1-1-1V7a1,1,0,0,1,2,0V9A1,1,0,0,1,15,10Zm-4,0a1,1,0,0,1-1-1V7a1,1,0,0,1,2,0V9A1,1,0,0,1,11,10Z\" fill=\"#B8967E\"/></svg></span>' : '') + (m.url ? '<a href="' + esc(m.url) + '" target="_blank" style="margin-left:3px;font-size:.55rem;color:var(--bl)">link</a>' : '') + '</div><div class="mvotes"><button class="vbtn' + (myV ? ' voted' : '') + '" data-vote="' + m.id + '" data-wk="' + wk + '" data-di="' + i + '" data-slot="' + sk + '">+' + vc + '</button><button class="cclaim' + (m.cooker ? ' claimed' : '') + '" data-cook="' + m.id + '" data-wk="' + wk + '" data-di="' + i + '" data-slot="' + sk + '">' + (m.cooker ? esc(m.cooker.charAt(0)) : "I'll cook") + '</button><button class="xbtn" style="font-size:.58rem" data-delmeal="' + m.id + '" data-wk="' + wk + '" data-di="' + i + '" data-slot="' + sk + '">x</button></div></div>';
-        }).join('') + '<button class="add-meal-btn" data-addmeal="1" data-wk="' + wk + '" data-di="' + i + '" data-slot="' + sk + '">+ suggest</button></div>';
+        meals.forEach(function(m) { var vc = m.votes ? Object.keys(m.votes).length : 0; if (vc > maxV) { maxV = vc; winner = m.id; } });
+        var slotCls = {'B':'msug-b','L':'msug-l','D':'msug-d'};
+        return '<div style="margin-bottom:8px;background:' + bg + ';border-radius:9px;padding:7px 10px">' +
+          '<div class="slot-dot-' + sk.toLowerCase() + '" style="margin-bottom:4px"></div>' +
+          meals.map(function(m) {
+            var vc = m.votes ? Object.keys(m.votes).length : 0;
+            var myV = m.votes && m.votes[userName];
+            var isW = m.id === winner && maxV > 0;
+            return '<div class="msug ' + (isW ? 'winner' : slotCls[sk]) + '" style="margin-bottom:5px">' +
+              '<div class="msug-name">' + esc(m.name) +
+              (m.recipeId ? ' <span data-cookr="' + m.recipeId + '" style="display:inline-flex;align-items:center;cursor:pointer"><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M21,12H3a1,1,0,0,0,0,2H8v1a3,3,0,0,0,3,3h8a3,3,0,0,0,3-3V13A1,1,0,0,0,21,12Z" fill="#2A2218"/><path d="M19,10a1,1,0,0,1-1-1V7a1,1,0,0,1,2,0V9A1,1,0,0,1,19,10Zm-4,0a1,1,0,0,1-1-1V7a1,1,0,0,1,2,0V9A1,1,0,0,1,15,10Zm-4,0a1,1,0,0,1-1-1V7a1,1,0,0,1,2,0V9A1,1,0,0,1,11,10Z" fill="#B8967E"/></svg></span>' : '') +
+              (m.url ? '<a href="' + esc(m.url) + '" target="_blank" style="margin-left:3px;font-size:.65rem;color:var(--bl)">link</a>' : '') +
+              '</div>' +
+              '<div class="mvotes">' +
+              '<button class="vbtn' + (myV ? ' voted' : '') + '" data-vote="' + m.id + '" data-wk="' + wk + '" data-di="' + i + '" data-slot="' + sk + '">+' + vc + '</button>' +
+              '<button class="cclaim' + (m.cooker ? ' claimed' : '') + '" data-cook="' + m.id + '" data-wk="' + wk + '" data-di="' + i + '" data-slot="' + sk + '">' + (m.cooker ? esc(m.cooker) : "I'll cook") + '</button>' +
+              '<button class="xbtn" data-delmeal="' + m.id + '" data-wk="' + wk + '" data-di="' + i + '" data-slot="' + sk + '">x</button>' +
+              '</div></div>';
+          }).join('') +
+          '<button class="add-meal-btn" data-addmeal="1" data-wk="' + wk + '" data-di="' + i + '" data-slot="' + sk + '">+ suggest</button>' +
+          '</div>';
       }
-      return '<div class="plan-day' + (isT ? ' tod' : '') + '" data-di="' + i + '" data-wk="' + wk + '" data-dk="' + dk + '"><h4>' + DAYS[i] + '</h4><div class="plan-date">' + d.getDate() + '/' + (d.getMonth() + 1) + '</div>' + slotHtml('B', 'B') + slotHtml('L', 'L') + slotHtml('D', 'D') + '</div>';
+      return '<div class="plan-day' + (isT ? ' tod' : '') + '" data-di="' + i + '" data-wk="' + wk + '" data-dk="' + dk + '" style="margin-bottom:6px;padding:10px 12px">' +
+        '<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">' +
+        '<span style="font-size:.88rem;font-weight:700;color:' + (isT ? 'var(--terra)' : 'var(--charcoal)') + '">' + DAYS[i] + ' ' + d.getDate() + '/' + (d.getMonth()+1) + '</span>' +
+        (isT ? '<span style="font-size:.65rem;font-weight:700;background:var(--terra);color:#fff;border-radius:20px;padding:1px 8px">Today</span>' : '') +
+        '</div>' +
+        slotHtml('B', 'B', 'var(--bld-b-bg)') +
+        slotHtml('L', 'L', 'var(--bld-l-bg)') +
+        slotHtml('D', 'D', 'var(--bld-d-bg)') +
+        '</div>';
     }).join('');
   }
   if (weekData) {
     drawWeek(weekData);
   } else {
-    db.ref('planner/' + wk).once('value', function (snap) { drawWeek(snap.val() || {}); });
+    db.ref('planner/' + wk).once('value', function(snap) { drawWeek(snap.val() || {}); });
   }
 }
 
