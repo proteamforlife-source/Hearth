@@ -219,6 +219,20 @@ var saver=t.closest('[data-saver]');if(saver){var rid2=saver.dataset.saver;attem
   var vote=t.closest('[data-vote]');if(vote){if(!userName)return;var vref=db.ref('planner/'+vote.dataset.wk+'/'+vote.dataset.di+'/'+vote.dataset.slot+'/'+vote.dataset.vote+'/votes/'+userName);vref.once('value',function(s){if(s.val())vref.remove();else vref.set(true);setTimeout(function(){if(el('pg-d').classList.contains('on'))renderDashboard();if(!el('dayDetailMod').classList.contains('h'))refreshDayDetail(parseInt(vote.dataset.di),vote.dataset.wk,'');},500);});return;}
   var cook=t.closest('[data-cook]');if(cook){if(!userName)return;var cref=db.ref('planner/'+cook.dataset.wk+'/'+cook.dataset.di+'/'+cook.dataset.slot+'/'+cook.dataset.cook+'/cooker');cref.once('value',function(s){cref.set(s.val()===userName?'':userName);setTimeout(function(){if(el('pg-d').classList.contains('on'))renderDashboard();if(el('pg-p').classList.contains('on'))renderPlanner();if(!el('dayDetailMod').classList.contains('h'))refreshDayDetail(parseInt(cook.dataset.di),cook.dataset.wk,'');},400);});return;}
   var delmeal=t.closest('[data-delmeal]');if(delmeal){var dwk=delmeal.dataset.wk,ddi=parseInt(delmeal.dataset.di),dslot=delmeal.dataset.slot,dmid=delmeal.dataset.delmeal;db.ref('planner/'+dwk+'/'+ddi+'/'+dslot+'/'+dmid).remove(function(){if(!el('dayDetailMod').classList.contains('h')){refreshDayDetail(ddi,dwk,'');}});return;}
+  // Week view day card tap — switch to day view for that day
+  var weeknav=t.closest('[data-weeknav]');
+  if(weeknav&&plannerView==='week'&&!t.closest('[data-addmeal]')&&!t.closest('[data-vote]')&&!t.closest('[data-cook]')&&!t.closest('[data-delmeal]')&&!t.closest('a')){
+    var dk=weeknav.dataset.dk;
+    if(dk){
+      var picked=new Date(dk+'T00:00:00');
+      var today=new Date();today.setHours(0,0,0,0);
+      planDayOffset=Math.round((picked-today)/86400000);
+      plannerView='day';
+      ['day','week','month'].forEach(function(v){var b=el('pv-'+v);if(b)b.className='sm '+(plannerView===v?'st':'sx');});
+      setupPlannerListener();renderPlanner();
+    }
+    return;
+  }
   var clickday=t.closest('[data-dk]');if(clickday&&clickday.dataset.di!==undefined&&!t.closest('[data-addmeal]')&&!t.closest('[data-vote]')&&!t.closest('[data-cook]')&&!t.closest('[data-delmeal]')&&!t.closest('a')&&!t.closest('[data-plannerview]')){var cdi=parseInt(clickday.dataset.di),cwk=clickday.dataset.wk,cdk=clickday.dataset.dk;if(cwk)db.ref('planner/'+cwk+'/'+cdi).once('value',function(snap){openDayDetail(cdi,cwk,cdk,snap.val()||{},plannerView==='month');});return;}
   var convBtn=t.closest('[data-conv]');if(convBtn&&convBtn.closest('#chatTabs')){switchConvo(convBtn.dataset.conv,convBtn.dataset.cname,convBtn.dataset.gid||'');return;}
   var addmembers=t.closest('[data-addmembers]');if(addmembers){openAddMembers(addmembers.dataset.addmembers);return;}

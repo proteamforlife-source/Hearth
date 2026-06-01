@@ -137,7 +137,7 @@ function renderPlanner(weekData) {
           '<button class="add-meal-btn" data-addmeal="1" data-wk="' + wk + '" data-di="' + i + '" data-slot="' + sk + '">+ suggest</button>' +
           '</div>';
       }
-      return '<div class="plan-day' + (isT ? ' tod' : '') + '" data-di="' + i + '" data-wk="' + wk + '" data-dk="' + dk + '" style="margin-bottom:6px;padding:10px 12px">' +
+      return '<div class="plan-day' + (isT ? ' tod' : '') + '" data-di="' + i + '" data-wk="' + wk + '" data-dk="' + dk + '" data-weeknav="' + i + '" style="margin-bottom:6px;padding:10px 12px">' +
         '<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">' +
         '<span style="font-size:.88rem;font-weight:700;color:' + (isT ? 'var(--terra)' : 'var(--charcoal)') + '">' + DAYS[i] + ' ' + d.getDate() + '/' + (d.getMonth()+1) + '</span>' +
         (isT ? '<span style="font-size:.65rem;font-weight:700;background:var(--terra);color:#fff;border-radius:20px;padding:1px 8px">Today</span>' : '') +
