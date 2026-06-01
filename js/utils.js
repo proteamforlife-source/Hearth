@@ -51,3 +51,96 @@ function avt(name,color,size){size=size||32;var fs=Math.round(size*0.42);return'
 function getWeekDates(off){var s=new Date();var d=s.getDay()||7;s.setDate(s.getDate()-d+1+(off*7));s.setHours(0,0,0,0);var arr=[];for(var i=0;i<7;i++){var dt=new Date(s);dt.setDate(s.getDate()+i);arr.push(dt);}return arr;}
 function getMonthDates(off){var d=new Date();d.setDate(1);d.setMonth(d.getMonth()+off);var yr=d.getFullYear(),mo=d.getMonth(),days=[],tot=new Date(yr,mo+1,0).getDate();for(var i=1;i<=tot;i++)days.push(new Date(yr,mo,i));return{days:days,label:d.toLocaleDateString('en-AU',{month:'long',year:'numeric'})};}
 function getMonthDatesForCal(offset){var d=new Date();d.setDate(1);d.setMonth(d.getMonth()+offset);var yr=d.getFullYear(),mo=d.getMonth(),days=[],tot=new Date(yr,mo+1,0).getDate();for(var i=1;i<=tot;i++)days.push(new Date(yr,mo,i));return{days:days,label:d.toLocaleDateString('en-AU',{month:'long',year:'numeric'}),year:yr,month:mo};}
+// ── Shared mini calendar picker ─────────────────────────────────────────────
+// showMiniCalPicker(anchorEl, viewingDate, onPickFn)
+// Appears as a dropdown below anchorEl.
+// onPickFn(dateString) called with YYYY-MM-DD when user picks a day.
+var _mcpOffset = 0; // internal month offset for the picker
+
+function showMiniCalPicker(anchorEl, viewingDate, onPickFn) {
+  // Close if already open
+  var existing = document.getElementById('mcpModal');
+  if (existing) { existing.remove(); return; }
+
+  // Start picker on the month of the viewing date
+  var base = viewingDate ? new Date(viewingDate + 'T00:00:00') : new Date();
+  var now = new Date();
+  _mcpOffset = (base.getFullYear() - now.getFullYear()) * 12 + (base.getMonth() - now.getMonth());
+
+  function build() {
+    var old = document.getElementById('mcpModal');
+    var nowD = new Date();
+    var yr = nowD.getFullYear(); var mo = nowD.getMonth();
+    var disp = new Date(yr, mo + _mcpOffset, 1);
+    var pyr = disp.getFullYear(); var pmo = disp.getMonth();
+    var monthLabel = disp.toLocaleDateString('en-AU', { month: 'long', year: 'numeric' });
+    var firstDow = disp.getDay() || 7;
+    var daysInMonth = new Date(pyr, pmo + 1, 0).getDate();
+    var todayStr = todayKey();
+    var viewingStr = viewingDate || todayStr;
+    var DOWS = ['M','T','W','T','F','S','S'];
+
+    var grid = '<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:2px;margin-top:6px">';
+    DOWS.forEach(function(d) {
+      grid += '<div style="text-align:center;font-size:.68rem;font-weight:700;color:var(--muted);padding:3px 0">' + d + '</div>';
+    });
+    for (var i = 1; i < firstDow; i++) {
+      // Trailing days from previous month — dimmed
+      var prevDays = new Date(pyr, pmo, 0).getDate();
+      var pd = prevDays - (firstDow - 1) + (i - 1);
+      grid += '<div style="text-align:center;padding:5px 2px;font-size:.82rem;color:#ccc">' + pd + '</div>';
+    }
+    for (var day = 1; day <= daysInMonth; day++) {
+      var dk = pyr + '-' + String(pmo + 1).padStart(2,'0') + '-' + String(day).padStart(2,'0');
+      var isToday = dk === todayStr;
+      var isViewing = dk === viewingStr;
+      var bg = isViewing ? 'var(--terra)' : isToday ? 'var(--cream)' : 'transparent';
+      var color = isViewing ? '#fff' : isToday ? 'var(--charcoal)' : 'var(--charcoal)';
+      var border = isToday && !isViewing ? '1.5px solid var(--border)' : '1px solid transparent';
+      var fw = (isToday || isViewing) ? '700' : '400';
+      grid += '<button data-mcpday="' + dk + '" style="text-align:center;padding:5px 2px;border-radius:7px;border:' + border + ';background:' + bg + ';color:' + color + ';font-size:.82rem;font-weight:' + fw + ';cursor:pointer;line-height:1.2">' + day + '</button>';
+    }
+    grid += '</div>';
+
+    // Position below anchor
+    var rect = anchorEl.getBoundingClientRect();
+    var left = Math.min(rect.left, window.innerWidth - 260);
+    var top = rect.bottom + window.scrollY + 4;
+
+    var html = '<div id="mcpModal" style="position:absolute;z-index:9999;top:' + top + 'px;left:' + left + 'px;width:252px;background:#fff;border-radius:14px;box-shadow:0 4px 24px rgba(42,34,24,.18);padding:14px;border:1px solid var(--border)">' +
+      '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:2px">' +
+      '<button id="mcpPrev" style="background:none;border:none;font-size:1rem;cursor:pointer;color:var(--charcoal);padding:4px 8px">&#x2190;</button>' +
+      '<span style="font-weight:700;font-size:.85rem;color:var(--charcoal)">' + monthLabel + '</span>' +
+      '<button id="mcpNext" style="background:none;border:none;font-size:1rem;cursor:pointer;color:var(--charcoal);padding:4px 8px">&#x2192;</button>' +
+      '</div>' +
+      grid +
+      '<div style="display:flex;justify-content:space-between;margin-top:10px">' +
+      '<button id="mcpClear" style="background:none;border:none;color:var(--terra);font-size:.82rem;cursor:pointer;padding:4px 8px">Clear</button>' +
+      '<button id="mcpToday" style="background:none;border:none;color:var(--terra);font-size:.82rem;cursor:pointer;padding:4px 8px">Today</button>' +
+      '</div>' +
+      '</div>';
+
+    if (old) { old.outerHTML = html; } else { document.body.insertAdjacentHTML('beforeend', html); }
+
+    // Wire up prev/next/today/clear
+    var modal = document.getElementById('mcpModal');
+    modal.querySelector('#mcpPrev').addEventListener('click', function(e) { e.stopPropagation(); _mcpOffset--; build(); });
+    modal.querySelector('#mcpNext').addEventListener('click', function(e) { e.stopPropagation(); _mcpOffset++; build(); });
+    modal.querySelector('#mcpToday').addEventListener('click', function(e) { e.stopPropagation(); onPickFn(todayKey()); modal.remove(); });
+    modal.querySelector('#mcpClear').addEventListener('click', function(e) { e.stopPropagation(); modal.remove(); });
+    modal.querySelectorAll('[data-mcpday]').forEach(function(btn) {
+      btn.addEventListener('click', function(e) { e.stopPropagation(); onPickFn(btn.dataset.mcpday); modal.remove(); });
+    });
+  }
+
+  build();
+
+  // Close on outside tap
+  function onOutside(e) {
+    var m = document.getElementById('mcpModal');
+    if (m && !m.contains(e.target) && e.target !== anchorEl) {
+      m.remove(); document.removeEventListener('click', onOutside, true);
+    }
+  }
+  setTimeout(function() { document.addEventListener('click', onOutside, true); }, 50);
+}

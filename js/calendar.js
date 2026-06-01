@@ -105,28 +105,33 @@ function getMonthDatesForCal(offset) {
 }
 
 function openMonthJump() {
-  if (el('calMonthJumpModal')) { el('calMonthJumpModal').remove(); return; }
-  var months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-  var now = new Date();
-  var html = '<div id="calMonthJumpModal" style="position:absolute;inset:0;z-index:999;display:flex;align-items:center;justify-content:center;background:rgba(42,34,24,.45)">';
-  html += '<div style="background:#fff;border-radius:18px;padding:20px;width:300px;max-width:92%;box-shadow:0 4px 16px rgba(42,34,24,.12)">';
-  html += '<div style="font-weight:700;font-size:.95rem;color:var(--charcoal);margin-bottom:14px;text-align:center">Jump to Month</div>';
-  for (var y = now.getFullYear() - 1; y <= now.getFullYear() + 2; y++) {
-    html += '<div style="margin-bottom:10px"><div style="font-size:.72rem;font-weight:700;color:var(--muted);margin-bottom:6px">' + y + '</div>';
-    html += '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:5px">';
-    months.forEach(function(m, mi) {
-      var val = (y - now.getFullYear()) * 12 + (mi - now.getMonth());
-      var isNow = y === now.getFullYear() && mi === now.getMonth();
-      var isSel = val === calOffset;
-      html += '<button data-jumpval="' + val + '" style="padding:7px 4px;border-radius:9px;border:1.5px solid ' + (isSel ? 'var(--terra)' : 'var(--border)') + ';background:' + (isSel ? 'var(--terra)' : isNow ? 'var(--cream)' : '#fff') + ';color:' + (isSel ? '#fff' : 'var(--charcoal)') + ';font-size:.78rem;font-weight:' + (isNow || isSel ? '700' : '500') + ';cursor:pointer">' + m + '</button>';
-    });
-    html += '</div></div>';
+  var anchor = el('calLabelInner');
+  if (!anchor) return;
+  // Determine current viewing date string for the picker to open on
+  var viewDate = todayKey();
+  if (calView === 'day') {
+    var vd = new Date(); vd.setDate(vd.getDate() + calOffset); viewDate = lKey(vd);
+  } else if (calView === 'week') {
+    var wd = getWeekDates(calOffset); viewDate = lKey(wd[0]);
+  } else {
+    var md = getMonthDatesForCal(calOffset); viewDate = lKey(md.days[Math.min(14, md.days.length-1)]);
   }
-  html += '<button id="calJumpClose" style="width:100%;margin-top:8px;padding:10px;border-radius:10px;border:none;background:var(--cream);color:var(--muted);font-size:.84rem;cursor:pointer">Close</button>';
-  html += '</div></div>';
-  var pg = el('pg-c');
-  if (pg) { pg.style.position = 'relative'; pg.insertAdjacentHTML('beforeend', html); }
-  else document.body.insertAdjacentHTML('beforeend', html);
+  showMiniCalPicker(anchor, viewDate, function(dk) {
+    var picked = new Date(dk + 'T00:00:00');
+    var today = new Date(); today.setHours(0,0,0,0);
+    if (calView === 'day') {
+      calOffset = Math.round((picked - today) / 86400000);
+    } else if (calView === 'week') {
+      var dow = picked.getDay() || 7;
+      var mon = new Date(picked); mon.setDate(picked.getDate() - dow + 1);
+      var todMon = new Date(today); var td = todMon.getDay() || 7; todMon.setDate(today.getDate() - td + 1);
+      calOffset = Math.round((mon - todMon) / (7 * 86400000));
+    } else {
+      var nowD = new Date();
+      calOffset = (picked.getFullYear() - nowD.getFullYear()) * 12 + (picked.getMonth() - nowD.getMonth());
+    }
+    renderCalendar();
+  });
 }
 
 function updateCalNav() {
@@ -211,11 +216,12 @@ function renderCalWeek() {
     dates.forEach(function(d) {
       var dk = lKey(d); // lKey for event matching
       var items = getCalItemsForDate(dk).concat(getMealsForDate(dk));
-      html += '<div class="cal-week-events">';
+      html += '<div class="cal-week-events" data-caldk="' + dk + '" style="cursor:pointer">';
       items.forEach(function(item) {
         var t = CAL_TYPES[item.type] || CAL_TYPES.personal;
         html += '<div class="cal-event-pill" style="background:' + t.bg + ';color:' + t.color + ';margin-bottom:3px">' + t.icon + ' ' + esc(item.text.length > 12 ? item.text.slice(0, 12) + '…' : item.text) + '</div>';
       });
+      if (!items.length) html += '<div style="height:100%;min-height:32px"></div>';
       html += '</div>';
     });
     html += '</div>';
@@ -303,16 +309,8 @@ document.addEventListener('click', function(e) {
   if (t.id === 'calNextNav') { calOffset++; renderCalendar(); return; }
   if (t.id === 'calTodayBtn') { calOffset = 0; renderCalendar(); return; }
   if (t.id === 'calLabelInner') { openMonthJump(); return; }
-  if (t.id === 'calJumpClose') { var jm = el('calMonthJumpModal'); if (jm) jm.remove(); return; }
 
-  var jumpBtn = t.closest('[data-jumpval]');
-  if (jumpBtn && el('calMonthJumpModal')) {
-    calOffset = parseInt(jumpBtn.dataset.jumpval);
-    el('calMonthJumpModal').remove();
-    renderCalendar(); return;
-  }
 
-  if (t.id === 'calMonthJumpModal') { t.remove(); return; }
 
   var cv = t.closest('[data-calview]');
   if (cv && el('pg-c') && el('pg-c').classList.contains('on')) {

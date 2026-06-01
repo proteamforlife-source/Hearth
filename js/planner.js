@@ -92,21 +92,17 @@ function updatePlannerViewBtns() {
 function renderPlanner(weekData) {
   updatePlannerViewBtns();
   if (plannerView === 'month') {
-    var dp0 = el('planDatePick'); if (dp0) dp0.style.display = 'none';
-    var dpm = el('planMonthPick');
-    if (dpm) { dpm.style.display = 'inline-block'; var dm = new Date(); dm.setMonth(dm.getMonth() + planMonthOffset); dpm.value = dm.getFullYear() + '-' + String(dm.getMonth()+1).padStart(2,'0'); }
+    // month view — picker wired via planLabel click
     renderPlannerMonth(); return;
   }
   if (plannerView === 'day') {
-    var dpm0 = el('planMonthPick'); if (dpm0) dpm0.style.display = 'none';
-    var dp = el('planDatePick');
-    if (dp) { dp.style.display = 'inline-block'; var d0 = new Date(); d0.setDate(d0.getDate() + planDayOffset); dp.value = dKey(d0); }
+
+    // day view — picker wired via planLabel click
     renderPlannerDay(); return;
   }
   // week view
-  var dpm1 = el('planMonthPick'); if (dpm1) dpm1.style.display = 'none';
-  var dp2 = el('planDatePick');
-  if (dp2) { dp2.style.display = 'inline-block'; dp2.value = dKey(getWeekDates(planWeekOffset)[0]); }
+
+  // week view — picker wired via planLabel click
 
   var dates = getWeekDates(planWeekOffset), ws = dates[0], we = dates[6];
   el('planLabel').textContent = ws.toLocaleDateString('en-AU', { day: 'numeric', month: 'short' }) + ' - ' + we.toLocaleDateString('en-AU', { day: 'numeric', month: 'short' });
@@ -286,37 +282,42 @@ document.addEventListener('DOMContentLoaded', function () {
     setupPlannerListener(); renderPlanner();
   });
 
-  var planMonthPick = el('planMonthPick');
-  if (planMonthPick) {
-    planMonthPick.addEventListener('change', function () {
-      if (!this.value) return;
-      var parts = this.value.split('-');
-      var now = new Date();
-      planMonthOffset = (parseInt(parts[0]) - now.getFullYear()) * 12 + (parseInt(parts[1]) - 1 - now.getMonth());
-      plannerMonthCache = {};
-      setupPlannerListener(); renderPlanner();
-    });
-  }
-
-  var planDatePick = el('planDatePick');
-  if (planDatePick) {
-    planDatePick.addEventListener('change', function () {
-      if (!this.value) return;
-      var picked = new Date(this.value + 'T00:00:00');
-      var today = new Date(); today.setHours(0,0,0,0);
-      var diff = Math.round((picked - today) / 86400000);
+  // planLabel — tap to open mini calendar picker
+  var planLabel = el('planLabel');
+  if (planLabel) {
+    planLabel.style.cursor = 'pointer';
+    planLabel.style.borderBottom = '1.5px dashed var(--terra)';
+    planLabel.style.paddingBottom = '1px';
+    planLabel.addEventListener('click', function() {
+      var viewDate = todayKey();
       if (plannerView === 'day') {
-        planDayOffset = diff;
+        var vd = new Date(); vd.setDate(vd.getDate() + planDayOffset); vd.setHours(0,0,0,0);
+        viewDate = vd.getFullYear() + '-' + String(vd.getMonth()+1).padStart(2,'0') + '-' + String(vd.getDate()).padStart(2,'0');
+      } else if (plannerView === 'week') {
+        var wd = getWeekDates(planWeekOffset);
+        viewDate = wd[0].getFullYear() + '-' + String(wd[0].getMonth()+1).padStart(2,'0') + '-' + String(wd[0].getDate()).padStart(2,'0');
       } else {
-        // week view — jump to the week containing the picked date
-        planWeekOffset = Math.floor(diff / 7);
-        // adjust for day-of-week: find Monday of picked week
-        var dow = picked.getDay() || 7; // Mon=1..Sun=7
-        var monday = new Date(picked); monday.setDate(picked.getDate() - dow + 1);
-        var todayMonday = new Date(today); var td = todayMonday.getDay() || 7; todayMonday.setDate(today.getDate() - td + 1);
-        planWeekOffset = Math.round((monday - todayMonday) / (7 * 86400000));
+        var md = getMonthDates(planMonthOffset);
+        var mid = md.days[Math.min(14, md.days.length-1)];
+        viewDate = mid.getFullYear() + '-' + String(mid.getMonth()+1).padStart(2,'0') + '-' + String(mid.getDate()).padStart(2,'0');
       }
-      setupPlannerListener(); renderPlanner();
+      showMiniCalPicker(planLabel, viewDate, function(dk) {
+        var picked = new Date(dk + 'T00:00:00');
+        var today = new Date(); today.setHours(0,0,0,0);
+        if (plannerView === 'day') {
+          planDayOffset = Math.round((picked - today) / 86400000);
+        } else if (plannerView === 'week') {
+          var dow = picked.getDay() || 7;
+          var mon = new Date(picked); mon.setDate(picked.getDate() - dow + 1);
+          var todMon = new Date(today); var td = todMon.getDay() || 7; todMon.setDate(today.getDate() - td + 1);
+          planWeekOffset = Math.round((mon - todMon) / (7 * 86400000));
+        } else {
+          var nowD = new Date();
+          planMonthOffset = (picked.getFullYear() - nowD.getFullYear()) * 12 + (picked.getMonth() - nowD.getMonth());
+          plannerMonthCache = {};
+        }
+        setupPlannerListener(); renderPlanner();
+      });
     });
   }
 
