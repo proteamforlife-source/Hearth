@@ -110,7 +110,7 @@ function renderPlanner(weekData) {
   function drawWeek(data) {
     el('planGrid').style.gridTemplateColumns = 'repeat(7,1fr)';
     el('planGrid').innerHTML = dates.map(function (d, i) {
-      var dk = dKey(d), isT = dk === today, dayData = data[i] || {};
+      var dk = lKey(d), isT = dk === today, dayData = data[i] || {};
       // future: contextual personal summaries belong in Planner day detail only — not in the shared week grid
       function slotHtml(sk, lbl) {
         var meals = dayData[sk] ? Object.values(dayData[sk]) : [];
@@ -301,23 +301,29 @@ document.addEventListener('DOMContentLoaded', function () {
         var mid = md.days[Math.min(14, md.days.length-1)];
         viewDate = mid.getFullYear() + '-' + String(mid.getMonth()+1).padStart(2,'0') + '-' + String(mid.getDate()).padStart(2,'0');
       }
-      showMiniCalPicker(planLabel, viewDate, function(dk) {
-        var picked = new Date(dk + 'T00:00:00');
-        var today = new Date(); today.setHours(0,0,0,0);
-        if (plannerView === 'day') {
-          planDayOffset = Math.round((picked - today) / 86400000);
-        } else if (plannerView === 'week') {
-          var dow = picked.getDay() || 7;
-          var mon = new Date(picked); mon.setDate(picked.getDate() - dow + 1);
-          var todMon = new Date(today); var td = todMon.getDay() || 7; todMon.setDate(today.getDate() - td + 1);
-          planWeekOffset = Math.round((mon - todMon) / (7 * 86400000));
-        } else {
-          var nowD = new Date();
-          planMonthOffset = (picked.getFullYear() - nowD.getFullYear()) * 12 + (picked.getMonth() - nowD.getMonth());
+      if (plannerView === 'month') {
+        // Month view — month grid picker
+        showMonthPicker(planLabel, planMonthOffset, function(val) {
+          planMonthOffset = val;
           plannerMonthCache = {};
-        }
-        setupPlannerListener(); renderPlanner();
-      });
+          setupPlannerListener(); renderPlanner();
+        });
+      } else {
+        // Week / day view — mini calendar picker
+        showMiniCalPicker(planLabel, viewDate, function(dk) {
+          var picked = new Date(dk + 'T00:00:00');
+          var today = new Date(); today.setHours(0,0,0,0);
+          if (plannerView === 'day') {
+            planDayOffset = Math.round((picked - today) / 86400000);
+          } else {
+            var dow = picked.getDay() || 7;
+            var mon = new Date(picked); mon.setDate(picked.getDate() - dow + 1);
+            var todMon = new Date(today); var td = todMon.getDay() || 7; todMon.setDate(today.getDate() - td + 1);
+            planWeekOffset = Math.round((mon - todMon) / (7 * 86400000));
+          }
+          setupPlannerListener(); renderPlanner();
+        });
+      }
     });
   }
 

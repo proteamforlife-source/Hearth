@@ -13,13 +13,6 @@ var CAL_TYPES = {
   workout:  { icon: '💪', bg: '#fff0e8', border: '#f0c0a0', color: '#7a3010', label: 'Workout' }
 };
 
-// ── Local date key — always matches stored date strings (YYYY-MM-DD) ──
-// Never use dKey() for calendar display dates — dKey uses toISOString (UTC)
-// which shifts back one day in AEST (UTC+10). lKey uses local date parts.
-function lKey(d) {
-  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
-}
-
 // ── Monday of the week containing d (local) ──
 function getMondayOfWeek(d) {
   var day = new Date(d);
@@ -107,28 +100,31 @@ function getMonthDatesForCal(offset) {
 function openMonthJump() {
   var anchor = el('calLabelInner');
   if (!anchor) return;
-  // Determine current viewing date string for the picker to open on
+  // Month view — use month grid picker (jump months, not days)
+  if (calView === 'month') {
+    showMonthPicker(anchor, calOffset, function(val) {
+      calOffset = val;
+      renderCalendar();
+    });
+    return;
+  }
+  // Week / day view — use mini calendar picker (jump to a specific date)
   var viewDate = todayKey();
   if (calView === 'day') {
     var vd = new Date(); vd.setDate(vd.getDate() + calOffset); viewDate = lKey(vd);
-  } else if (calView === 'week') {
-    var wd = getWeekDates(calOffset); viewDate = lKey(wd[0]);
   } else {
-    var md = getMonthDatesForCal(calOffset); viewDate = lKey(md.days[Math.min(14, md.days.length-1)]);
+    var wd = getWeekDates(calOffset); viewDate = lKey(wd[0]);
   }
   showMiniCalPicker(anchor, viewDate, function(dk) {
     var picked = new Date(dk + 'T00:00:00');
     var today = new Date(); today.setHours(0,0,0,0);
     if (calView === 'day') {
       calOffset = Math.round((picked - today) / 86400000);
-    } else if (calView === 'week') {
+    } else {
       var dow = picked.getDay() || 7;
       var mon = new Date(picked); mon.setDate(picked.getDate() - dow + 1);
       var todMon = new Date(today); var td = todMon.getDay() || 7; todMon.setDate(today.getDate() - td + 1);
       calOffset = Math.round((mon - todMon) / (7 * 86400000));
-    } else {
-      var nowD = new Date();
-      calOffset = (picked.getFullYear() - nowD.getFullYear()) * 12 + (picked.getMonth() - nowD.getMonth());
     }
     renderCalendar();
   });

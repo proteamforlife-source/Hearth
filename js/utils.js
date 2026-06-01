@@ -144,3 +144,56 @@ function showMiniCalPicker(anchorEl, viewingDate, onPickFn) {
   }
   setTimeout(function() { document.addEventListener('click', onOutside, true); }, 50);
 }
+
+// ── lKey — local date string, always matches stored YYYY-MM-DD event dates ──
+// Never use dKey() for display/matching — dKey uses toISOString (UTC) which
+// shifts back one day in AEST (UTC+10). lKey uses local date parts.
+function lKey(d) {
+  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+}
+
+// ── Month picker — for month-view navigation (Calendar and Planner) ─────────
+// showMonthPicker(anchorEl, currentMonthOffset, onPickFn)
+// onPickFn(monthOffset) — offset from today's month
+function showMonthPicker(anchorEl, currentOffset, onPickFn) {
+  var existing = document.getElementById('mthPickModal');
+  if (existing) { existing.remove(); return; }
+
+  var MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  var now = new Date();
+  var html = '<div id="mthPickModal" style="position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;background:rgba(42,34,24,.45)">' +
+    '<div style="background:#fff;border-radius:18px;padding:20px;width:300px;max-width:92vw;box-shadow:0 4px 24px rgba(42,34,24,.18)">' +
+    '<div style="font-weight:700;font-size:.95rem;color:var(--charcoal);margin-bottom:14px;text-align:center">Jump to Month</div>';
+
+  for (var y = now.getFullYear() - 1; y <= now.getFullYear() + 2; y++) {
+    html += '<div style="margin-bottom:10px">' +
+      '<div style="font-size:.72rem;font-weight:700;color:var(--muted);margin-bottom:6px">' + y + '</div>' +
+      '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:5px">';
+    MONTHS.forEach(function(m, mi) {
+      var val = (y - now.getFullYear()) * 12 + (mi - now.getMonth());
+      var isNow = y === now.getFullYear() && mi === now.getMonth();
+      var isSel = val === currentOffset;
+      html += '<button data-mthval="' + val + '" style="padding:7px 4px;border-radius:9px;border:1.5px solid ' +
+        (isSel ? 'var(--terra)' : 'var(--border)') + ';background:' +
+        (isSel ? 'var(--terra)' : isNow ? 'var(--cream)' : '#fff') + ';color:' +
+        (isSel ? '#fff' : 'var(--charcoal)') + ';font-size:.78rem;font-weight:' +
+        (isNow || isSel ? '700' : '500') + ';cursor:pointer">' + m + '</button>';
+    });
+    html += '</div></div>';
+  }
+  html += '<button id="mthPickClose" style="width:100%;margin-top:8px;padding:10px;border-radius:10px;border:none;background:var(--cream);color:var(--muted);font-size:.84rem;cursor:pointer">Close</button>' +
+    '</div></div>';
+
+  document.body.insertAdjacentHTML('beforeend', html);
+  var modal = document.getElementById('mthPickModal');
+
+  modal.querySelectorAll('[data-mthval]').forEach(function(btn) {
+    btn.addEventListener('click', function(e) {
+      e.stopPropagation();
+      modal.remove();
+      onPickFn(parseInt(btn.dataset.mthval));
+    });
+  });
+  modal.querySelector('#mthPickClose').addEventListener('click', function() { modal.remove(); });
+  modal.addEventListener('click', function(e) { if (e.target === modal) modal.remove(); });
+}
