@@ -8,7 +8,7 @@ document.addEventListener('click',function(e){
   if(addBill){var n=el('billName').value.trim();if(!n){alert('Enter a bill name.');return;}var due=el('billDue').value;if(!due){alert('Select a due date.');return;}var bill={id:'bi'+Date.now(),name:n,amount:parseFloat(el('billAmt').value)||0,freq:el('billFreq').value,due:due,cat:el('billCat').value,notes:el('billNotes').value.trim(),paid:false,paidDate:'',paidBy:'',addedBy:userName};db.ref('bills/'+bill.id).set(bill);['billName','billAmt','billDue','billNotes'].forEach(function(i){el(i).value='';});return;}
   var bfBtn=e.target.closest('[data-bf]');if(bfBtn){billFilter=bfBtn.dataset.bf;renderBills();return;}
   var editbill=e.target.closest('[data-editbill]');if(editbill){openEditBill(editbill.dataset.editbill);return;}
-  var delbill=e.target.closest('[data-delbill]');if(delbill){if(!confirm('Delete this bill?'))return;db.ref('bills/'+delbill.dataset.delbill).remove();return;}
+
 
 
 });
