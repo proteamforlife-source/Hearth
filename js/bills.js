@@ -9,6 +9,6 @@ document.addEventListener('click',function(e){
   var bfBtn=e.target.closest('[data-bf]');if(bfBtn){billFilter=bfBtn.dataset.bf;renderBills();return;}
   var editbill=e.target.closest('[data-editbill]');if(editbill){openEditBill(editbill.dataset.editbill);return;}
   var delbill=e.target.closest('[data-delbill]');if(delbill){if(!confirm('Delete this bill?'))return;db.ref('bills/'+delbill.dataset.delbill).remove();return;}
-  var paybill=e.target.closest('[data-paybill]');if(paybill){if(!userName)return;var bid=paybill.dataset.paybill,b=bills.find(function(x){return x.id===bid;});if(!b)return;var nextDue='';if(b.freq&&b.freq!=='once'){var d=new Date(b.due+'T00:00:00');if(b.freq==='weekly')d.setDate(d.getDate()+7);else if(b.freq==='fortnightly')d.setDate(d.getDate()+14);else if(b.freq==='monthly')d.setMonth(d.getMonth()+1);else if(b.freq==='quarterly')d.setMonth(d.getMonth()+3);else if(b.freq==='annual')d.setFullYear(d.getFullYear()+1);nextDue=lKey(d);}db.ref('bills/'+bid).update({paid:true,paidDate:todayKey(),paidBy:userName});if(nextDue){var newId='bi'+Date.now();db.ref('bills/'+newId).set(Object.assign({},b,{id:newId,paid:false,paidDate:'',paidBy:'',due:nextDue}));}return;}
-  var unpaybill=e.target.closest('[data-unpaybill]');if(unpaybill){db.ref('bills/'+unpaybill.dataset.unpaybill).update({paid:false,paidDate:'',paidBy:''});return;}
+
+
 });
