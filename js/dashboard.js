@@ -2,34 +2,80 @@
 function renderDashboard(){
   if(!el('pg-d')||!userName)return;
   el('dashContent').innerHTML='<div style="text-align:center;padding:30px;color:var(--muted)">Loading...</div>';
-  var today=todayKey(),todayDates=getWeekDates(0),todayIdx=new Date().getDay()-1;if(todayIdx<0)todayIdx=6;
+  var today=todayKey();
+  var nextEv=null;var sorted=events.slice().sort(function(a,b){return(a.date||'9999')<(b.date||'9999')?-1:1;});for(var i=0;i<sorted.length;i++){if(sorted[i].date>=today){nextEv=sorted[i];break;}}
+  var todayItems=[];if(personalData&&personalData.days&&personalData.days[today]&&personalData.days[today].items)todayItems=Object.values(personalData.days[today].items);
+  var lastRead=personalData.lastRead||{};
+  var now=new Date();now.setHours(0,0,0,0);
+  var weekEnd=new Date(now);weekEnd.setDate(weekEnd.getDate()+7);
+  var dueSoon=bills.filter(function(b){
+    if(b.paid)return false;
+    var d=new Date(b.due+'T00:00:00');
+    return d>=now&&d<=weekEnd;
+  }).sort(function(a,b){return a.due<b.due?-1:1;});
+  // Render dashboard immediately — planner and dinnerQ load independently
+  buildDash(today,todayItems,nextEv,lastRead,dueSoon);
+  loadDashTonight(today);
+}
+
+// ── Load planner dinner + dinnerQ independently — does not block render ───
+function loadDashTonight(today){
+  if(!el('pg-d')||!userName)return;
+  var todayDates=getWeekDates(0),todayIdx=new Date().getDay()-1;if(todayIdx<0)todayIdx=6;
   db.ref('planner/'+dKey(todayDates[0])+'/'+todayIdx+'/D').once('value',function(snap){
+    if(!el('pg-d')||!userName)return;
     var dinners=[];snap.forEach(function(c){dinners.push(c.val());});
     var winner=null,maxV=0;dinners.forEach(function(m){var vc=m.votes?Object.keys(m.votes).length:0;if(vc>=maxV){maxV=vc;winner=m;}});
-    db.ref('dinnerQ/'+today).once('value',function(dqSnap){
+    db.ref('dinnerQ/'+(today||todayKey())).once('value',function(dqSnap){
+      if(!el('pg-d')||!userName)return;
       var dqData=dqSnap.val()||{},myAnswer=dqData[userName]||null;
-      var nextEv=null;var sorted=events.slice().sort(function(a,b){return(a.date||'9999')<(b.date||'9999')?-1:1;});for(var i=0;i<sorted.length;i++){if(sorted[i].date>=today){nextEv=sorted[i];break;}}
-      var todayItems=[];if(personalData&&personalData.days&&personalData.days[today]&&personalData.days[today].items)todayItems=Object.values(personalData.days[today].items);
       var answersList=buildDinnerAnswers(dqData);
-      var lastRead=personalData.lastRead||{};
-      var now=new Date();now.setHours(0,0,0,0);
-      var weekEnd=new Date(now);weekEnd.setDate(weekEnd.getDate()+7);
-      var dueSoon=bills.filter(function(b){
-        if(b.paid)return false;
-        var d=new Date(b.due+'T00:00:00');
-        return d>=now&&d<=weekEnd;
-      }).sort(function(a,b){return a.due<b.due?-1:1;});
-      // Render dashboard immediately — chat loads independently
-      buildDash(null,answersList,todayItems,winner,dinners,nextEv,dqData,lastRead,null,myAnswer,dueSoon);
+      updateDashTonight(dinners,winner,dqData,myAnswer,answersList);
     });
   });
 }
 
-
-function buildDash(allMsgs,answersList,todayItems,winner,dinners,nextEv,dqData,lastRead,myGroups,myAnswer,dueSoon){
-  var todayFmt=new Date().toLocaleDateString('en-AU',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+// ── Patch Tonight + DinnerQ cards only — no full re-render ───────────────
+function updateDashTonight(dinners,winner,dqData,myAnswer,answersList){
   var todayIdx=new Date().getDay()-1;if(todayIdx<0)todayIdx=6;
   var wkKey=dKey(getWeekDates(0)[0]);
+
+  // Update dinner-q section
+  var dqEl=document.querySelector('.dinner-q');
+  if(dqEl){
+    dqEl.innerHTML='<h3>Are you home for dinner tonight?</h3>'+
+      '<div class="dq-btns">'+
+        '<button class="dq-btn yes'+(myAnswer==='yes'?' on':'')+'\" data-dqa="yes">Yes</button>'+
+        '<button class="dq-btn'+(myAnswer==='no'?' on':'')+'\" data-dqa="no">No</button>'+
+      '</div>'+
+      (answersList?'<div class="dq-answers" style="margin-top:8px">'+answersList+'</div>':'');
+  }
+
+  // Update Tonight card
+  var card=el('dashTonightCard');
+  if(!card)return;
+  var html='<h3>🍽 Tonight</h3>';
+  if(!dinners.length){
+    html+='<div style="color:var(--muted);font-size:.84rem;margin-bottom:8px">Nothing planned yet</div>';
+    html+='<button class="sm st" style="font-size:.75rem;padding:5px 12px" data-quickdinner="1">+ Suggest a meal</button>';
+  } else {
+    dinners.forEach(function(m){
+      var vc=m.votes?Object.keys(m.votes).length:0;
+      var myV=m.votes&&m.votes[userName];
+      var isW=winner&&m.id===winner.id;
+      html+='<div style="display:flex;align-items:center;gap:7px;padding:6px 8px;border-radius:9px;margin-bottom:5px;background:'+(isW?'#eaf3ea':'var(--cream)')+';border:1.5px solid '+(isW?'var(--sage)':'var(--border)')+'">'+
+        '<div style="flex:1;font-size:.84rem;font-weight:'+(isW?'700':'500')+'">'+esc(m.name)+'</div>'+
+        '<button class="vbtn'+(myV?' voted':'')+'\" data-vote="'+m.id+'" data-wk="'+wkKey+'" data-di="'+todayIdx+'" data-slot="D" style="font-size:.72rem;padding:3px 8px">👍 '+vc+'</button>'+
+        '<button class="cclaim'+(m.cooker?' claimed':'')+'\" data-cook="'+m.id+'" data-wk="'+wkKey+'" data-di="'+todayIdx+'" data-slot="D" style="font-size:.72rem;padding:3px 8px">'+(m.cooker?'👨‍🍳 '+esc(m.cooker):'Cook?')+'</button>'+
+      '</div>';
+    });
+    html+='<button class="sm sx" style="font-size:.74rem;padding:4px 10px;margin-top:4px;width:100%" data-quickdinner="1">+ Suggest something else</button>';
+  }
+  card.innerHTML=html;
+}
+
+function buildDash(today,todayItems,nextEv,lastRead,dueSoon){
+  var todayFmt=new Date().toLocaleDateString('en-AU',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
 
   var billsCard='';
   if(dueSoon.length){
@@ -51,41 +97,20 @@ function buildDash(allMsgs,answersList,todayItems,winner,dinners,nextEv,dqData,l
     '</div>';
   }
 
-  var dqButtons=
-    '<div class="dq-btns">'+
-      '<button class="dq-btn yes'+(myAnswer==='yes'?' on':'')+'\" data-dqa="yes">Yes</button>'+
-      '<button class="dq-btn'+(myAnswer==='no'?' on':'')+'\" data-dqa="no">No</button>'+
-    '</div>';
-
   el('dashContent').innerHTML=
     '<div style="font-size:.82rem;color:var(--muted);font-weight:600;margin-bottom:12px;text-align:center">'+todayFmt+'</div>'+
     '<div class="dinner-q"><h3>Are you home for dinner tonight?</h3>'+
-      dqButtons+
-      (answersList?'<div class="dq-answers" style="margin-top:8px">'+answersList+'</div>':'')+
+      '<div class="dq-btns">'+
+        '<button class="dq-btn" data-dqa="yes">Yes</button>'+
+        '<button class="dq-btn" data-dqa="no">No</button>'+
+      '</div>'+
     '</div>'+
     '<div class="dash-grid">'+
 
-      (function(){
-        var html='<div class="dash-card"><h3>🍽 Tonight</h3>';
-        if(!dinners.length){
-          html+='<div style="color:var(--muted);font-size:.84rem;margin-bottom:8px">Nothing planned yet</div>';
-          html+='<button class="sm st" style="font-size:.75rem;padding:5px 12px" data-quickdinner="1">+ Suggest a meal</button>';
-        } else {
-          dinners.forEach(function(m){
-            var vc=m.votes?Object.keys(m.votes).length:0;
-            var myV=m.votes&&m.votes[userName];
-            var isW=winner&&m.id===winner.id;
-            html+='<div style="display:flex;align-items:center;gap:7px;padding:6px 8px;border-radius:9px;margin-bottom:5px;background:'+(isW?'#eaf3ea':'var(--cream)')+';border:1.5px solid '+(isW?'var(--sage)':'var(--border)')+'">'+
-              '<div style="flex:1;font-size:.84rem;font-weight:'+(isW?'700':'500')+'">'+esc(m.name)+'</div>'+
-              '<button class="vbtn'+(myV?' voted':'')+'\" data-vote="'+m.id+'" data-wk="'+wkKey+'" data-di="'+todayIdx+'" data-slot="D" style="font-size:.72rem;padding:3px 8px">👍 '+vc+'</button>'+
-              '<button class="cclaim'+(m.cooker?' claimed':'')+'\" data-cook="'+m.id+'" data-wk="'+wkKey+'" data-di="'+todayIdx+'" data-slot="D" style="font-size:.72rem;padding:3px 8px">'+(m.cooker?'👨‍🍳 '+esc(m.cooker):'Cook?')+'</button>'+
-            '</div>';
-          });
-          html+='<button class="sm sx" style="font-size:.74rem;padding:4px 10px;margin-top:4px;width:100%" data-quickdinner="1">+ Suggest something else</button>';
-        }
-        html+='</div>';
-        return html;
-      })()+
+      '<div class="dash-card" id="dashTonightCard">'+
+        '<h3>🍽 Tonight</h3>'+
+        '<div style="color:var(--muted);font-size:.84rem">Loading...</div>'+
+      '</div>'+
 
       '<div class="dash-card" data-switchtab="m"><h3>📋 My Schedule</h3>'+
         (todayItems.length?todayItems.map(function(item){return'<div class="dash-sched-item mp-'+item.type+'">'+esc(item.text)+'</div>';}).join(''):'<div style="color:var(--muted);font-size:.84rem">Nothing today</div>')+
