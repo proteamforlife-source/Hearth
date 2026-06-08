@@ -19,25 +19,54 @@ function renderDashboard(){
         var d=new Date(b.due+'T00:00:00');
         return d>=now&&d<=weekEnd;
       }).sort(function(a,b){return a.due<b.due?-1:1;});
-      db.ref('chatGroups').once('value',function(grpSnap){
-        var myGroups=['family'];
-        grpSnap.forEach(function(c){var g=c.val();if(g.members&&g.members[userName])myGroups.push(g.id);});
-        Object.keys(members).forEach(function(n){if(n!==userName)myGroups.push([userName,n].sort().join('_'));});
-        var allMsgs=[],pending=myGroups.length;
-        if(!pending){buildDash([],answersList,todayItems,winner,dinners,nextEv,dqData,{},{},myAnswer,dueSoon);return;}
-        myGroups.forEach(function(cid){
-          db.ref('chats/'+cid).limitToLast(10).once('value',function(msgSnap){
-            msgSnap.forEach(function(c){var m=c.val();m._cid=cid;allMsgs.push(m);});
-            pending--;
-            if(pending===0){
-              allMsgs.sort(function(a,b){return b.ts-a.ts;});
-              buildDash(allMsgs,answersList,todayItems,winner,dinners,nextEv,dqData,lastRead,myGroups,myAnswer,dueSoon);
-            }
-          });
-        });
+      // Render dashboard immediately — chat loads independently
+      buildDash(null,answersList,todayItems,winner,dinners,nextEv,dqData,lastRead,null,myAnswer,dueSoon);
+      loadDashChat(lastRead);
+    });
+  });
+}
+
+// ── Load chat independently — does not block dashboard render ─────────────
+function loadDashChat(lastRead){
+  if(!el('pg-d')||!userName)return;
+  db.ref('chatGroups').once('value',function(grpSnap){
+    if(!el('pg-d')||!userName)return;
+    var myGroups=['family'];
+    grpSnap.forEach(function(c){var g=c.val();if(g.members&&g.members[userName])myGroups.push(g.id);});
+    Object.keys(members).forEach(function(n){if(n!==userName)myGroups.push([userName,n].sort().join('_'));});
+    var allMsgs=[],pending=myGroups.length;
+    if(!pending){updateDashMessages([],lastRead);return;}
+    myGroups.forEach(function(cid){
+      db.ref('chats/'+cid).limitToLast(10).once('value',function(msgSnap){
+        msgSnap.forEach(function(c){var m=c.val();m._cid=cid;allMsgs.push(m);});
+        pending--;
+        if(pending===0){
+          allMsgs.sort(function(a,b){return b.ts-a.ts;});
+          var unread=allMsgs.filter(function(m){return m.by!==userName&&m.ts>((lastRead&&lastRead[m._cid])||0);});
+          updateDashMessages(unread,lastRead);
+        }
       });
     });
   });
+}
+
+// ── Patch Messages card only — no full re-render ──────────────────────────
+function updateDashMessages(unread,lastRead){
+  var card=el('dashMsgCard');
+  if(!card)return;
+  var html='<h3>💬 Messages';
+  if(unread.length)html+=' <span style="background:var(--re);color:#fff;border-radius:10px;padding:1px 7px;font-size:.7rem">'+unread.length+' new</span>';
+  html+='</h3>';
+  if(!unread.length){
+    html+='<div style="color:var(--muted);font-size:.84rem">All caught up ✓</div>';
+  } else {
+    html+=unread.slice(0,4).map(function(m){
+      var col=members[m.by]?members[m.by].color:'#8A7A6E';
+      return'<div class="dash-msg">'+avt(m.by,col,20)+'<span class="dash-msg-txt">'+esc(m.by)+': '+(m.photo?'📷 Photo':esc(m.text))+'</span><span class="dash-msg-time">'+new Date(m.ts).toLocaleTimeString('en-AU',{hour:'2-digit',minute:'2-digit'})+'</span></div>';
+    }).join('');
+    if(unread.length>4)html+='<div style="font-size:.76rem;color:var(--muted);margin-top:4px">+'+(unread.length-4)+' more</div>';
+  }
+  card.innerHTML=html;
 }
 
 function buildDash(allMsgs,answersList,todayItems,winner,dinners,nextEv,dqData,lastRead,myGroups,myAnswer,dueSoon){
@@ -67,8 +96,8 @@ function buildDash(allMsgs,answersList,todayItems,winner,dinners,nextEv,dqData,l
 
   var dqButtons=
     '<div class="dq-btns">'+
-      '<button class="dq-btn yes'+(myAnswer==='yes'?' on':'')+'" data-dqa="yes">Yes</button>'+
-      '<button class="dq-btn'+(myAnswer==='no'?' on':'')+'" data-dqa="no">No</button>'+
+      '<button class="dq-btn yes'+(myAnswer==='yes'?' on':'')+'\" data-dqa="yes">Yes</button>'+
+      '<button class="dq-btn'+(myAnswer==='no'?' on':'')+'\" data-dqa="no">No</button>'+
     '</div>';
 
   el('dashContent').innerHTML=
@@ -91,8 +120,8 @@ function buildDash(allMsgs,answersList,todayItems,winner,dinners,nextEv,dqData,l
             var isW=winner&&m.id===winner.id;
             html+='<div style="display:flex;align-items:center;gap:7px;padding:6px 8px;border-radius:9px;margin-bottom:5px;background:'+(isW?'#eaf3ea':'var(--cream)')+';border:1.5px solid '+(isW?'var(--sage)':'var(--border)')+'">'+
               '<div style="flex:1;font-size:.84rem;font-weight:'+(isW?'700':'500')+'">'+esc(m.name)+'</div>'+
-              '<button class="vbtn'+(myV?' voted':'')+'" data-vote="'+m.id+'" data-wk="'+wkKey+'" data-di="'+todayIdx+'" data-slot="D" style="font-size:.72rem;padding:3px 8px">👍 '+vc+'</button>'+
-              '<button class="cclaim'+(m.cooker?' claimed':'')+'" data-cook="'+m.id+'" data-wk="'+wkKey+'" data-di="'+todayIdx+'" data-slot="D" style="font-size:.72rem;padding:3px 8px">'+(m.cooker?'👨‍🍳 '+esc(m.cooker):'Cook?')+'</button>'+
+              '<button class="vbtn'+(myV?' voted':'')+'\" data-vote="'+m.id+'" data-wk="'+wkKey+'" data-di="'+todayIdx+'" data-slot="D" style="font-size:.72rem;padding:3px 8px">👍 '+vc+'</button>'+
+              '<button class="cclaim'+(m.cooker?' claimed':'')+'\" data-cook="'+m.id+'" data-wk="'+wkKey+'" data-di="'+todayIdx+'" data-slot="D" style="font-size:.72rem;padding:3px 8px">'+(m.cooker?'👨‍🍳 '+esc(m.cooker):'Cook?')+'</button>'+
             '</div>';
           });
           html+='<button class="sm sx" style="font-size:.74rem;padding:4px 10px;margin-top:4px;width:100%" data-quickdinner="1">+ Suggest something else</button>';
@@ -117,23 +146,10 @@ function buildDash(allMsgs,answersList,todayItems,winner,dinners,nextEv,dqData,l
         })()+
       '</div>'+
 
-      (function(){
-        var unread=(allMsgs||[]).filter(function(m){return m.by!==userName&&m.ts>((lastRead&&lastRead[m._cid])||0);});
-        var html='<div class="dash-card" data-switchchat="1"><h3>💬 Messages';
-        if(unread.length)html+=' <span style="background:var(--re);color:#fff;border-radius:10px;padding:1px 7px;font-size:.7rem">'+unread.length+' new</span>';
-        html+='</h3>';
-        if(!unread.length){
-          html+='<div style="color:var(--muted);font-size:.84rem">All caught up ✓</div>';
-        } else {
-          html+=unread.slice(0,4).map(function(m){
-            var col=members[m.by]?members[m.by].color:'#8A7A6E';
-            return'<div class="dash-msg">'+avt(m.by,col,20)+'<span class="dash-msg-txt">'+esc(m.by)+': '+(m.photo?'📷 Photo':esc(m.text))+'</span><span class="dash-msg-time">'+new Date(m.ts).toLocaleTimeString('en-AU',{hour:'2-digit',minute:'2-digit'})+'</span></div>';
-          }).join('');
-          if(unread.length>4)html+='<div style="font-size:.76rem;color:var(--muted);margin-top:4px">+'+(unread.length-4)+' more</div>';
-        }
-        html+='</div>';
-        return html;
-      })()+
+      // Messages card — renders placeholder immediately, updated by loadDashChat()
+      '<div class="dash-card" id="dashMsgCard" data-switchchat="1"><h3>💬 Messages</h3>'+
+        '<div style="color:var(--muted);font-size:.84rem">Checking messages…</div>'+
+      '</div>'+
 
       '<div class="dash-card" data-switchtab="e"><h3>📅 Next Event</h3>'+
         (nextEv?'<div style="font-weight:700;color:var(--terra);font-size:.9rem">'+esc(nextEv.name)+'</div><div style="font-size:.78rem;color:var(--muted);margin-top:3px">'+fmtDate(nextEv.date)+'</div>':'<div style="color:var(--muted);font-size:.84rem">No upcoming events</div>')+
@@ -166,20 +182,19 @@ function buildDinnerAnswers(dqData){
   html+='</div>';
   return html;
 }
+
 function refreshDinnerQ(){
   var dqEl=document.querySelector('.dinner-q');
   if(!dqEl)return;
   db.ref('dinnerQ/'+todayKey()).once('value',function(snap){
     var dqData=snap.val()||{};
     var myAnswer=dqData[userName]||null;
-    // update buttons
     var btnsEl=dqEl.querySelector('.dq-btns');
     if(btnsEl){
       btnsEl.innerHTML=
-        '<button class="dq-btn yes'+(myAnswer==='yes'?' on':'')+'" data-dqa="yes">Yes</button>'+
-        '<button class="dq-btn'+(myAnswer==='no'?' on':'')+'" data-dqa="no">No</button>';
+        '<button class="dq-btn yes'+(myAnswer==='yes'?' on':'')+'\" data-dqa="yes">Yes</button>'+
+        '<button class="dq-btn'+(myAnswer==='no'?' on':'')+'\" data-dqa="no">No</button>';
     }
-    // update answers
     var answersEl=dqEl.querySelector('.dq-answers');
     var answersHtml=buildDinnerAnswers(dqData);
     if(answersEl){answersEl.innerHTML=answersHtml;}
@@ -190,4 +205,5 @@ function refreshDinnerQ(){
     }
   });
 }
+
 function openChat(){el('chatPanel').classList.add('open');}
