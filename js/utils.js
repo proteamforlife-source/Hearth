@@ -197,17 +197,3 @@ function showMonthPicker(anchorEl, currentOffset, onPickFn) {
   modal.querySelector('#mthPickClose').addEventListener('click', function() { modal.remove(); });
   modal.addEventListener('click', function(e) { if (e.target === modal) modal.remove(); });
 }
-
-// ── Dashboard render debounce ─────────────────────────────────────────────
-// Multiple Firebase listeners (members, events, bills, planner, personal)
-// fire simultaneously on startup. Without debounce this causes 5–7 renders
-// before the user sees anything. 150ms collapses concurrent fires into one.
-// All callers use debouncedRenderDashboard() — switchTab('d') calls
-// renderDashboard() directly (intentional immediate render on tab switch).
-var _dashDebounceTimer = null;
-function debouncedRenderDashboard() {
-  clearTimeout(_dashDebounceTimer);
-  _dashDebounceTimer = setTimeout(function() {
-    renderDashboard();
-  }, 150);
-}

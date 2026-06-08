@@ -4,7 +4,7 @@ function renderMemberList(){var ns=Object.keys(members);if(!ns.length){el('membe
 function showPin(name){authMember=name;pinEntry='';el('as1').style.display='none';el('as2').style.display='block';el('asName').textContent=(members[name]&&members[name].pin)?'Hello '+name+'! Enter PIN':'Hi '+name+'! Set your PIN';updDots('pinDots',0);el('pinErr').textContent='';}
 function updDots(id,len){el(id).querySelectorAll('.pin-dot').forEach(function(d,i){d.classList.toggle('filled',i<len);});}
 function checkPin(){var m=members[authMember];if(!m){el('pinErr').textContent='Not found.';return;}if(!m.pin){db.ref('members/'+authMember+'/pin').set(pinEntry);doLogin(authMember,m.color||'#B8967E');return;}if(String(m.pin)===pinEntry){doLogin(authMember,m.color||'#B8967E');}else{el('pinErr').textContent='Wrong PIN.';pinEntry='';updDots('pinDots',0);}}
-function doLogin(name,color){userName=name;userColor=color;localStorage.setItem('fk_name',name);localStorage.setItem('fk_color',color);el('authScreen').classList.add('h');el('userPill').innerHTML=avt(name,color,20)+'<span>'+esc(name)+'</span>';db.ref('members/'+name+'/lastSeen').set(Date.now());loadPersonal();buildPresetTags();buildChatTabs();listenToConvo('family');switchTab('d');}
+function doLogin(name,color){userName=name;userColor=color;localStorage.setItem('fk_name',name);localStorage.setItem('fk_color',color);el('authScreen').classList.add('h');el('userPill').innerHTML=avt(name,color,20)+'<span>'+esc(name)+'</span>';db.ref('members/'+name+'/lastSeen').set(Date.now());loadPersonal();buildPresetTags();buildChatTabs();listenToConvo('family');switchTab('d');setTimeout(renderDashboard,300);}
 
 // Pin pad — login
 document.addEventListener('click',function(e){
