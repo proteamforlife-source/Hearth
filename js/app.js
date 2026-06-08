@@ -25,10 +25,11 @@ function switchTab(id){
 
 function init(){
 db.ref('members').on('value',function(snap){
+      var wasLoggedIn=!!userName;
       members={};snap.forEach(function(c){members[c.key]=c.val();});renderMemberList();if(userName)buildChatTabs();
     if(!userName){var sn=localStorage.getItem('fk_name'),sc=localStorage.getItem('fk_color')||'#B8967E';
     if(sn&&members[sn]){userName=sn;userColor=sc;el('authScreen').classList.add('h');el('userPill').innerHTML=avt(sn,sc,20)+'<span>'+esc(sn)+'</span>';loadPersonal();buildPresetTags();buildChatTabs();listenToConvo('family');db.ref('members/'+sn+'/lastSeen').set(Date.now());switchTab('d');}}
-if(el('pg-d').classList.contains('on')&&userName)debouncedRenderDashboard();
+if(wasLoggedIn&&el('pg-d').classList.contains('on')&&userName)debouncedRenderDashboard();
   });
   db.ref('recipes').on('value',function(snap){recipes=[];testRecipes=[];snap.forEach(function(c){var v=c.val();if(v.testing)testRecipes.push(v);else recipes.push(v);});recipes.reverse();testRecipes.reverse();renderRecipes();buildCatFilter();buildTagFilter();renderTestRecipes();});
   db.ref('events').on('value',function(snap){events=[];snap.forEach(function(c){events.push(c.val());});renderEvents();if(el('pg-d').classList.contains('on')&&userName)debouncedRenderDashboard();});
