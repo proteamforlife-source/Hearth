@@ -21,53 +21,10 @@ function renderDashboard(){
       }).sort(function(a,b){return a.due<b.due?-1:1;});
       // Render dashboard immediately — chat loads independently
       buildDash(null,answersList,todayItems,winner,dinners,nextEv,dqData,lastRead,null,myAnswer,dueSoon);
-      loadDashChat(lastRead);
     });
   });
 }
 
-// ── Load chat independently — does not block dashboard render ─────────────
-function loadDashChat(lastRead){
-  if(!el('pg-d')||!userName)return;
-  db.ref('chatGroups').once('value',function(grpSnap){
-    if(!el('pg-d')||!userName)return;
-    var myGroups=['family'];
-    grpSnap.forEach(function(c){var g=c.val();if(g.members&&g.members[userName])myGroups.push(g.id);});
-    Object.keys(members).forEach(function(n){if(n!==userName)myGroups.push([userName,n].sort().join('_'));});
-    var allMsgs=[],pending=myGroups.length;
-    if(!pending){updateDashMessages([],lastRead);return;}
-    myGroups.forEach(function(cid){
-      db.ref('chats/'+cid).limitToLast(10).once('value',function(msgSnap){
-        msgSnap.forEach(function(c){var m=c.val();m._cid=cid;allMsgs.push(m);});
-        pending--;
-        if(pending===0){
-          allMsgs.sort(function(a,b){return b.ts-a.ts;});
-          var unread=allMsgs.filter(function(m){return m.by!==userName&&m.ts>((lastRead&&lastRead[m._cid])||0);});
-          updateDashMessages(unread,lastRead);
-        }
-      });
-    });
-  });
-}
-
-// ── Patch Messages card only — no full re-render ──────────────────────────
-function updateDashMessages(unread,lastRead){
-  var card=el('dashMsgCard');
-  if(!card)return;
-  var html='<h3>💬 Messages';
-  if(unread.length)html+=' <span style="background:var(--re);color:#fff;border-radius:10px;padding:1px 7px;font-size:.7rem">'+unread.length+' new</span>';
-  html+='</h3>';
-  if(!unread.length){
-    html+='<div style="color:var(--muted);font-size:.84rem">All caught up ✓</div>';
-  } else {
-    html+=unread.slice(0,4).map(function(m){
-      var col=members[m.by]?members[m.by].color:'#8A7A6E';
-      return'<div class="dash-msg">'+avt(m.by,col,20)+'<span class="dash-msg-txt">'+esc(m.by)+': '+(m.photo?'📷 Photo':esc(m.text))+'</span><span class="dash-msg-time">'+new Date(m.ts).toLocaleTimeString('en-AU',{hour:'2-digit',minute:'2-digit'})+'</span></div>';
-    }).join('');
-    if(unread.length>4)html+='<div style="font-size:.76rem;color:var(--muted);margin-top:4px">+'+(unread.length-4)+' more</div>';
-  }
-  card.innerHTML=html;
-}
 
 function buildDash(allMsgs,answersList,todayItems,winner,dinners,nextEv,dqData,lastRead,myGroups,myAnswer,dueSoon){
   var todayFmt=new Date().toLocaleDateString('en-AU',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
@@ -146,9 +103,8 @@ function buildDash(allMsgs,answersList,todayItems,winner,dinners,nextEv,dqData,l
         })()+
       '</div>'+
 
-      // Messages card — renders placeholder immediately, updated by loadDashChat()
-      '<div class="dash-card" id="dashMsgCard" data-switchchat="1"><h3>💬 Messages</h3>'+
-        '<div style="color:var(--muted);font-size:.84rem">Checking messages…</div>'+
+      '<div class="dash-card" data-switchchat="1" style="cursor:pointer"><h3>💬 Messages</h3>'+
+        '<div style="color:var(--muted);font-size:.84rem">Open Chat →</div>'+
       '</div>'+
 
       '<div class="dash-card" data-switchtab="e"><h3>📅 Next Event</h3>'+
