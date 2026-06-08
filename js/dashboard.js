@@ -1,7 +1,7 @@
 // ─── DASHBOARD.JS ────────────────────────────────────────────────────────
 function renderDashboard(){
   if(!el('pg-d')||!userName)return;
-  el('dashContent').innerHTML='<div style="text-align:center;padding:30px;color:var(--muted)">Loading...</div>';
+  if(!el('dashContent').innerHTML.trim())el('dashContent').innerHTML='<div style="text-align:center;padding:30px;color:var(--muted)">Loading...</div>';
   var today=todayKey(),todayDates=getWeekDates(0),todayIdx=new Date().getDay()-1;if(todayIdx<0)todayIdx=6;
   db.ref('planner/'+dKey(todayDates[0])+'/'+todayIdx+'/D').once('value',function(snap){
     var dinners=[];snap.forEach(function(c){dinners.push(c.val());});
