@@ -16,8 +16,9 @@ function attemptProtectedAction(recipeId,action){
 function switchTab(id){
   tabs.forEach(function(t){el('pg-'+t).classList.remove('on');el('tb-'+t).classList.remove('on');});
   el('pg-'+id).classList.add('on');el('tb-'+id).classList.add('on');
+  if(id==='r')attachRecipesListener();
   if(id==='p'){renderPlanner();setupPlannerListener();}
-  if(id==='d')renderDashboard('switchTab');
+  if(id==='d')renderDashboard();
   if(id==='c')renderCalendar();
   if(id==='m')renderMyPage();
   if(id==='b')renderBills();
@@ -28,26 +29,32 @@ var chatStartupReady=false;
 function attachDeferredListeners(){
   if(_deferredAttached)return;
   _deferredAttached=true;
-  console.log('[HYDRATE] === deferred batch ATTACH @'+_hyNow()+'ms ===');
   loadPersonal();
   buildChatTabs();
   listenToConvo('family');
   chatStartupReady=true;
-  console.log('[HYDRATE] ATTACH recipes path=recipes @'+_hyNow()+'ms');window._hyRecT=performance.now();db.ref('recipes').on('value',function(snap){if(!window._hyRec){window._hyRec=1;var _t=performance.now();console.log('[HYDRATE] FIRST recipes @'+_hyNow()+'ms dur='+(_t-window._hyRecT).toFixed(1)+'ms len='+_hyLen(snap.val())+' count='+_hyCount(snap.val()));}recipes=[];testRecipes=[];snap.forEach(function(c){var v=c.val();if(v.testing)testRecipes.push(v);else recipes.push(v);});recipes.reverse();testRecipes.reverse();renderRecipes();buildCatFilter();buildTagFilter();renderTestRecipes();if(el('pg-d').classList.contains('on')&&userName)renderDashboard('recipes');});
-  console.log('[HYDRATE] ATTACH events path=events @'+_hyNow()+'ms');window._hyEvT=performance.now();db.ref('events').on('value',function(snap){if(!window._hyEv){window._hyEv=1;var _t=performance.now();console.log('[HYDRATE] FIRST events @'+_hyNow()+'ms dur='+(_t-window._hyEvT).toFixed(1)+'ms len='+_hyLen(snap.val())+' count='+_hyCount(snap.val()));}events=[];snap.forEach(function(c){events.push(c.val());});renderEvents();if(el('pg-d').classList.contains('on')&&userName)renderDashboard('events');});
-  console.log('[HYDRATE] ATTACH shopping path=shopping @'+_hyNow()+'ms');window._hyShT=performance.now();db.ref('shopping').on('value',function(snap){if(!window._hySh){window._hySh=1;var _t=performance.now();console.log('[HYDRATE] FIRST shopping @'+_hyNow()+'ms dur='+(_t-window._hyShT).toFixed(1)+'ms len='+_hyLen(snap.val())+' count='+_hyCount(snap.val()));}shopItems=[];snap.forEach(function(c){shopItems.push(c.val());});renderShopping();});
-  console.log('[HYDRATE] ATTACH bills path=bills @'+_hyNow()+'ms');window._hyBiT=performance.now();db.ref('bills').on('value',function(snap){if(!window._hyBi){window._hyBi=1;var _t=performance.now();console.log('[HYDRATE] FIRST bills @'+_hyNow()+'ms dur='+(_t-window._hyBiT).toFixed(1)+'ms len='+_hyLen(snap.val())+' count='+_hyCount(snap.val()));}bills=[];snap.forEach(function(c){bills.push(c.val());});renderBills();if(el('pg-d').classList.contains('on')&&userName)renderDashboard('bills');});
+  db.ref('events').on('value',function(snap){events=[];snap.forEach(function(c){events.push(c.val());});renderEvents();if(el('pg-d').classList.contains('on')&&userName)renderDashboard();});
+  db.ref('shopping').on('value',function(snap){shopItems=[];snap.forEach(function(c){shopItems.push(c.val());});renderShopping();});
+  db.ref('bills').on('value',function(snap){bills=[];snap.forEach(function(c){bills.push(c.val());});renderBills();if(el('pg-d').classList.contains('on')&&userName)renderDashboard();});
   attachDinnerQListener();
-  console.log('[HYDRATE] ATTACH planner-A path=planner/'+dKey(getWeekDates(0)[0])+' @'+_hyNow()+'ms');window._hyPaT=performance.now();db.ref('planner/'+dKey(getWeekDates(0)[0])).on('value',function(_s){if(!window._hyPa){window._hyPa=1;var _t=performance.now();console.log('[HYDRATE] FIRST planner-A @'+_hyNow()+'ms dur='+(_t-window._hyPaT).toFixed(1)+'ms len='+_hyLen(_s.val())+' count='+_hyCount(_s.val()));}if(el('pg-d').classList.contains('on')&&userName)renderDashboard('planner-A');});
+  db.ref('planner/'+dKey(getWeekDates(0)[0])).on('value',function(){if(el('pg-d').classList.contains('on')&&userName)renderDashboard();});
   setupPlannerListener();
+}
+
+var _recipesListenerAttached=false;
+function attachRecipesListener(){
+  if(_recipesListenerAttached)return;   // attach exactly once
+  _recipesListenerAttached=true;
+  var _rl=el('recList');if(_rl)_rl.innerHTML='<div class="emp"><span>⏳</span>Loading recipes…</div>';
+  db.ref('recipes').on('value',function(snap){recipes=[];testRecipes=[];snap.forEach(function(c){var v=c.val();if(v.testing)testRecipes.push(v);else recipes.push(v);});recipes.reverse();testRecipes.reverse();renderRecipes();buildCatFilter();buildTagFilter();renderTestRecipes();if(el('pg-d').classList.contains('on')&&userName)renderDashboard();});
 }
 
 function init(){
 db.ref('members').on('value',function(snap){
       members={};snap.forEach(function(c){members[c.key]=c.val();});renderMemberList();if(userName&&chatStartupReady)buildChatTabs();
     if(!userName){var sn=localStorage.getItem('fk_name'),sc=localStorage.getItem('fk_color')||'#B8967E';
-    if(sn&&members[sn]){userName=sn;userColor=sc;el('authScreen').classList.add('h');el('userPill').innerHTML=avt(sn,sc,20)+'<span>'+esc(sn)+'</span>';buildPresetTags();db.ref('members/'+sn+'/lastSeen').set(Date.now());switchTab('d');scheduleDeferredStartup(attachDeferredListeners);setTimeout(function(){renderDashboard('timer-400');},400);}}
-if(el('pg-d').classList.contains('on')&&userName)renderDashboard('members-inline');
+    if(sn&&members[sn]){userName=sn;userColor=sc;el('authScreen').classList.add('h');el('userPill').innerHTML=avt(sn,sc,20)+'<span>'+esc(sn)+'</span>';buildPresetTags();db.ref('members/'+sn+'/lastSeen').set(Date.now());switchTab('d');scheduleDeferredStartup(attachDeferredListeners);setTimeout(renderDashboard,400);}}
+if(el('pg-d').classList.contains('on')&&userName)renderDashboard();
   });
   scheduleMidnightRollover();
 }
@@ -56,7 +63,7 @@ var dinnerQRef=null;
 function attachDinnerQListener(){
   if(dinnerQRef)dinnerQRef.off();
   dinnerQRef=db.ref('dinnerQ/'+todayKey());
-  window._hyDqT=performance.now();console.log('[HYDRATE] ATTACH dinnerQ path=dinnerQ @'+_hyNow()+'ms');dinnerQRef.on('value',function(_s){if(!window._hyDq){window._hyDq=1;var _t=performance.now();console.log('[HYDRATE] FIRST dinnerQ @'+_hyNow()+'ms dur='+(_t-window._hyDqT).toFixed(1)+'ms len='+_hyLen(_s.val())+' count='+_hyCount(_s.val()));}if(el('pg-d').classList.contains('on')&&userName){if(document.querySelector('.dinner-q'))refreshDinnerQ();else renderDashboard('dinnerQ');}});
+  dinnerQRef.on('value',function(){if(el('pg-d').classList.contains('on')&&userName){if(document.querySelector('.dinner-q'))refreshDinnerQ();else renderDashboard();}});
 }
 
 function scheduleMidnightRollover(){
