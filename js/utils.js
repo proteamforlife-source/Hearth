@@ -21,17 +21,13 @@ _deferChan.port1.onmessage=function(){
   if(_deferDone)return;
   _deferDone=true;
   var q=_deferQueue;_deferQueue=[];
-  console.log('[VALIDATE] deferred attach FIRING @'+(window._vNow?_vNow():'?')+'ms  (macrotask)');
-  q.forEach(function(fn){try{fn();}catch(e){console.log('[VALIDATE] deferred cb error',e);}});
+  q.forEach(function(fn){try{fn();}catch(e){}});
 };
 function scheduleDeferredStartup(cb){
   if(_deferDone){try{cb();}catch(e){}return;}
   _deferQueue.push(cb);
   if(!_deferArmed){_deferArmed=true;_deferChan.port2.postMessage(0);}
 }
-
-// [VALIDATE] temporary timing clock — remove after validation
-window._vT0=performance.now();function _vNow(){return (performance.now()-window._vT0).toFixed(1);}
 
 // ── App constants ──
 var ADMIN='Mum';
