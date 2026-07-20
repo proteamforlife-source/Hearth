@@ -3,8 +3,28 @@
 
 // ── Firebase config ──
 var FB={apiKey:"AIzaSyA-JVr7hgGJZvlRWIA3RHWZ6SdzIkB5ngw",authDomain:"family-kitchen-628cb.firebaseapp.com",databaseURL:"https://family-kitchen-628cb-default-rtdb.asia-southeast1.firebasedatabase.app",projectId:"family-kitchen-628cb",storageBucket:"family-kitchen-628cb.firebasestorage.app",messagingSenderId:"1033585168692",appId:"1:1033585168692:web:d0482fdfe9996c8c6c1561"};
+window._p26T0=performance.now();
+function _p26Now(){return (performance.now()-window._p26T0).toFixed(1);}
 firebase.initializeApp(FB);
 var db=firebase.database();
+db.ref('.info/connected').on('value',function(s){console.log('[P2.6] .info/connected = '+s.val()+' @'+_p26Now()+'ms');});
+// [TEST4] Event coordinator — fires registered callback when BOTH first reads complete. No timers.
+window._p26FirstReads={planner:false,chat:false,fired:false,cbs:[]};
+window._p26SignalRead=function(which){
+  var s=window._p26FirstReads;
+  s[which]=true;
+  if(s.planner&&s.chat&&!s.fired){
+    s.fired=true;
+    console.log('[TEST4] both first reads complete → attaching deferred listeners @'+_p26Now()+'ms');
+    s.cbs.forEach(function(fn){try{fn();}catch(e){console.log('[TEST4] deferred cb error',e);}});
+    s.cbs=[];
+  }
+};
+window._p26OnFirstReads=function(cb){
+  var s=window._p26FirstReads;
+  if(s.fired){cb();return;}
+  s.cbs.push(cb);
+};
 
 // ── App constants ──
 var ADMIN='Mum';
