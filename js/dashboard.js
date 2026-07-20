@@ -1,12 +1,12 @@
 // ─── DASHBOARD.JS ────────────────────────────────────────────────────────
-// [HRT] TEMPORARY RUNTIME VALIDATION INSTRUMENTATION — remove after Pass 2.5
-var _hrtRenderN=0, _hrtActive=0, _hrtPlannerInFlight=0, _hrtChatInFlight=0, _hrtT0=(window._hrtT0||(window._hrtT0=performance.now()));
-function _hrtNow(){return (performance.now()-window._hrtT0).toFixed(1);}
+// [P2.5] TEMPORARY RUNTIME VALIDATION INSTRUMENTATION — remove after Pass 2.5
+var _p25RenderN=0, _p25Active=0, _p25PlannerInFlight=0, _p25ChatInFlight=0, _p25T0=(window._p25T0||(window._p25T0=performance.now()));
+function _p25Now(){return (performance.now()-window._p25T0).toFixed(1);}
 function renderDashboard(_caller){
   if(!el('pg-d')||!userName)return;
-  _hrtRenderN++; var _rn=_hrtRenderN;
-  console.log('[HRT] renderDashboard #'+_rn+' ENTER @'+_hrtNow()+'ms caller='+(_caller||'untagged')+' activeRendersAlready='+_hrtActive+' plannerReadsInFlight='+_hrtPlannerInFlight+' chatReadsInFlight='+_hrtChatInFlight);
-  _hrtActive++;
+  _p25RenderN++; var _rn=_p25RenderN;
+  console.log('[P2.5] renderDashboard #'+_rn+' ENTER @'+_p25Now()+'ms caller='+(_caller||'untagged')+' activeRendersAlready='+_p25Active+' plannerReadsInFlight='+_p25PlannerInFlight+' chatReadsInFlight='+_p25ChatInFlight);
+  _p25Active++;
   el('dashContent').innerHTML='<div style="text-align:center;padding:30px;color:var(--muted)">Loading...</div>';
   var today=todayKey();
   var nextEv=null;var sorted=events.slice().sort(function(a,b){return(a.date||'9999')<(b.date||'9999')?-1:1;});for(var i=0;i<sorted.length;i++){if(sorted[i].date>=today){nextEv=sorted[i];break;}}
@@ -20,12 +20,12 @@ function renderDashboard(_caller){
     return d>=now&&d<=weekEnd;
   }).sort(function(a,b){return a.due<b.due?-1:1;});
   // Render dashboard immediately — planner and dinnerQ load independently
-  console.log('[HRT] render #'+_rn+' dashContent WIPE+rebuild @'+_hrtNow()+'ms');
+  console.log('[P2.5] render #'+_rn+' dashContent WIPE+rebuild @'+_p25Now()+'ms');
   buildDash(today,todayItems,nextEv,lastRead,dueSoon);
   loadDashTonight(today,_rn);
   loadDashChat(lastRead,_rn);
-  _hrtActive--;
-  console.log('[HRT] renderDashboard #'+_rn+' EXIT(sync) @'+_hrtNow()+'ms activeRemaining='+_hrtActive);
+  _p25Active--;
+  console.log('[P2.5] renderDashboard #'+_rn+' EXIT(sync) @'+_p25Now()+'ms activeRemaining='+_p25Active);
 }
 
 // ── Load planner dinner + dinnerQ independently — does not block render ───
@@ -33,23 +33,23 @@ function loadDashTonight(today,_rn){
   if(!el('pg-d')||!userName)return;
   var todayDates=getWeekDates(0),todayIdx=new Date().getDay()-1;if(todayIdx<0)todayIdx=6;
   var _pPath='planner/'+dKey(todayDates[0])+'/'+todayIdx+'/D', _pStart=performance.now();
-  _hrtPlannerInFlight++;
-  console.log('[HRT] loadDashTonight START render#'+_rn+' plannerPath='+_pPath+' @'+_hrtNow()+'ms plannerInFlightNow='+_hrtPlannerInFlight);
+  _p25PlannerInFlight++;
+  console.log('[P2.5] loadDashTonight START render#'+_rn+' plannerPath='+_pPath+' @'+_p25Now()+'ms plannerInFlightNow='+_p25PlannerInFlight);
   db.ref(_pPath).once('value',function(snap){
-    _hrtPlannerInFlight--;
-    console.log('[HRT] planner READ RETURN render#'+_rn+' @'+_hrtNow()+'ms elapsed='+(performance.now()-_pStart).toFixed(1)+'ms plannerInFlightRemaining='+_hrtPlannerInFlight);
+    _p25PlannerInFlight--;
+    console.log('[P2.5] planner READ RETURN render#'+_rn+' @'+_p25Now()+'ms elapsed='+(performance.now()-_pStart).toFixed(1)+'ms plannerInFlightRemaining='+_p25PlannerInFlight);
     if(!el('pg-d')||!userName)return;
     var dinners=[];snap.forEach(function(c){dinners.push(c.val());});
     var winner=null,maxV=0;dinners.forEach(function(m){var vc=m.votes?Object.keys(m.votes).length:0;if(vc>=maxV){maxV=vc;winner=m;}});
     var _dqStart=performance.now();
-    console.log('[HRT] dinnerQ READ START render#'+_rn+' @'+_hrtNow()+'ms');
+    console.log('[P2.5] dinnerQ READ START render#'+_rn+' @'+_p25Now()+'ms');
     db.ref('dinnerQ/'+(today||todayKey())).once('value',function(dqSnap){
-      console.log('[HRT] dinnerQ READ RETURN render#'+_rn+' @'+_hrtNow()+'ms elapsed='+(performance.now()-_dqStart).toFixed(1)+'ms');
+      console.log('[P2.5] dinnerQ READ RETURN render#'+_rn+' @'+_p25Now()+'ms elapsed='+(performance.now()-_dqStart).toFixed(1)+'ms');
       if(!el('pg-d')||!userName)return;
       var dqData=dqSnap.val()||{},myAnswer=dqData[userName]||null;
       var answersList=buildDinnerAnswers(dqData);
       updateDashTonight(dinners,winner,dqData,myAnswer,answersList);
-      console.log('[HRT] Tonight card PATCHED render#'+_rn+' @'+_hrtNow()+'ms');
+      console.log('[P2.5] Tonight card PATCHED render#'+_rn+' @'+_p25Now()+'ms');
     });
   });
 }
@@ -97,11 +97,11 @@ function updateDashTonight(dinners,winner,dqData,myAnswer,answersList){
 function loadDashChat(lastRead,_rn){
   if(!el('pg-d')||!userName)return;
   var _cgStart=performance.now();
-  _hrtChatInFlight++;
-  console.log('[HRT] loadDashChat START render#'+_rn+' chatGroups .once() @'+_hrtNow()+'ms chatInFlightNow='+_hrtChatInFlight);
+  _p25ChatInFlight++;
+  console.log('[P2.5] loadDashChat START render#'+_rn+' chatGroups .once() @'+_p25Now()+'ms chatInFlightNow='+_p25ChatInFlight);
   db.ref('chatGroups').once('value',function(grpSnap){
-    _hrtChatInFlight--;
-    console.log('[HRT] chatGroups READ RETURN render#'+_rn+' @'+_hrtNow()+'ms elapsed='+(performance.now()-_cgStart).toFixed(1)+'ms chatInFlightRemaining='+_hrtChatInFlight);
+    _p25ChatInFlight--;
+    console.log('[P2.5] chatGroups READ RETURN render#'+_rn+' @'+_p25Now()+'ms elapsed='+(performance.now()-_cgStart).toFixed(1)+'ms chatInFlightRemaining='+_p25ChatInFlight);
     if(!el('pg-d')||!userName)return;
     var myGroups=['family'];
     grpSnap.forEach(function(c){var g=c.val();if(g.members&&g.members[userName])myGroups.push(g.id);});
@@ -110,16 +110,16 @@ function loadDashChat(lastRead,_rn){
     if(!pending){updateDashMessages([],lastRead);return;}
     myGroups.forEach(function(cid){
       var _cStart=performance.now();
-      console.log('[HRT] conversation READ START render#'+_rn+' cid='+cid+' @'+_hrtNow()+'ms');
+      console.log('[P2.5] conversation READ START render#'+_rn+' cid='+cid+' @'+_p25Now()+'ms');
       db.ref('chats/'+cid).limitToLast(10).once('value',function(msgSnap){
-        console.log('[HRT] conversation READ FINISH render#'+_rn+' cid='+cid+' @'+_hrtNow()+'ms elapsed='+(performance.now()-_cStart).toFixed(1)+'ms');
+        console.log('[P2.5] conversation READ FINISH render#'+_rn+' cid='+cid+' @'+_p25Now()+'ms elapsed='+(performance.now()-_cStart).toFixed(1)+'ms');
         msgSnap.forEach(function(c){var m=c.val();m._cid=cid;allMsgs.push(m);});
         pending--;
         if(pending===0){
           allMsgs.sort(function(a,b){return b.ts-a.ts;});
           var unread=allMsgs.filter(function(m){return m.by!==userName&&m.ts>((lastRead&&lastRead[m._cid])||0);});
           updateDashMessages(unread,lastRead);
-          console.log('[HRT] updateDashMessages RAN render#'+_rn+' @'+_hrtNow()+'ms unread='+unread.length);
+          console.log('[P2.5] updateDashMessages RAN render#'+_rn+' @'+_p25Now()+'ms unread='+unread.length);
         }
       });
     });
