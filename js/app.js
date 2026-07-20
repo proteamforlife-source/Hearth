@@ -23,25 +23,31 @@ function switchTab(id){
   if(id==='b')renderBills();
 }
 
-function init(){
-var _p26MembersFirst=true;
-db.ref('members').on('value',function(snap){
-      if(_p26MembersFirst){_p26MembersFirst=false;console.log('[P2.6] FIRST members callback @'+(window._p26Now?_p26Now():'?')+'ms');}
-      members={};snap.forEach(function(c){members[c.key]=c.val();});renderMemberList();if(userName)buildChatTabs();
-    if(!userName){var sn=localStorage.getItem('fk_name'),sc=localStorage.getItem('fk_color')||'#B8967E';
-    if(sn&&members[sn]){userName=sn;userColor=sc;el('authScreen').classList.add('h');el('userPill').innerHTML=avt(sn,sc,20)+'<span>'+esc(sn)+'</span>';buildPresetTags();buildChatTabs();listenToConvo('family');db.ref('members/'+sn+'/lastSeen').set(Date.now());switchTab('d');setTimeout(renderDashboard,400);/* [TEST4] loadPersonal deferred (event-driven) */window._p26OnFirstReads(function(){loadPersonal();});}}
-if(el('pg-d').classList.contains('on')&&userName)renderDashboard();
-  });
-  /* [TEST4] recipes/events/shopping/bills/dinnerQ deferred — attach ONLY after both first dashboard reads complete (event-driven, no timers) */
-  window._p26OnFirstReads(function(){
-    db.ref('recipes').on('value',function(snap){recipes=[];testRecipes=[];snap.forEach(function(c){var v=c.val();if(v.testing)testRecipes.push(v);else recipes.push(v);});recipes.reverse();testRecipes.reverse();renderRecipes();buildCatFilter();buildTagFilter();renderTestRecipes();if(el('pg-d').classList.contains('on')&&userName)renderDashboard();});
-    db.ref('events').on('value',function(snap){events=[];snap.forEach(function(c){events.push(c.val());});renderEvents();if(el('pg-d').classList.contains('on')&&userName)renderDashboard();});
-    db.ref('shopping').on('value',function(snap){shopItems=[];snap.forEach(function(c){shopItems.push(c.val());});renderShopping();});
-    db.ref('bills').on('value',function(snap){bills=[];snap.forEach(function(c){bills.push(c.val());});renderBills();if(el('pg-d').classList.contains('on')&&userName)renderDashboard();});
-    attachDinnerQListener();
-  });
+var _deferredAttached=false;
+var chatStartupReady=false;
+function attachDeferredListeners(){
+  if(_deferredAttached)return;
+  _deferredAttached=true;
+  loadPersonal();
+  buildChatTabs();
+  listenToConvo('family');
+  chatStartupReady=true;
+  db.ref('recipes').on('value',function(snap){recipes=[];testRecipes=[];snap.forEach(function(c){var v=c.val();if(v.testing)testRecipes.push(v);else recipes.push(v);});recipes.reverse();testRecipes.reverse();renderRecipes();buildCatFilter();buildTagFilter();renderTestRecipes();if(el('pg-d').classList.contains('on')&&userName)renderDashboard();});
+  db.ref('events').on('value',function(snap){events=[];snap.forEach(function(c){events.push(c.val());});renderEvents();if(el('pg-d').classList.contains('on')&&userName)renderDashboard();});
+  db.ref('shopping').on('value',function(snap){shopItems=[];snap.forEach(function(c){shopItems.push(c.val());});renderShopping();});
+  db.ref('bills').on('value',function(snap){bills=[];snap.forEach(function(c){bills.push(c.val());});renderBills();if(el('pg-d').classList.contains('on')&&userName)renderDashboard();});
+  attachDinnerQListener();
   db.ref('planner/'+dKey(getWeekDates(0)[0])).on('value',function(){if(el('pg-d').classList.contains('on')&&userName)renderDashboard();});
   setupPlannerListener();
+}
+
+function init(){
+db.ref('members').on('value',function(snap){
+      members={};snap.forEach(function(c){members[c.key]=c.val();});renderMemberList();if(userName&&chatStartupReady)buildChatTabs();
+    if(!userName){var sn=localStorage.getItem('fk_name'),sc=localStorage.getItem('fk_color')||'#B8967E';
+    if(sn&&members[sn]){userName=sn;userColor=sc;el('authScreen').classList.add('h');el('userPill').innerHTML=avt(sn,sc,20)+'<span>'+esc(sn)+'</span>';buildPresetTags();db.ref('members/'+sn+'/lastSeen').set(Date.now());switchTab('d');scheduleDeferredStartup(attachDeferredListeners);setTimeout(renderDashboard,400);}}
+if(el('pg-d').classList.contains('on')&&userName)renderDashboard();
+  });
   scheduleMidnightRollover();
 }
 

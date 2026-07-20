@@ -23,9 +23,9 @@ function renderDashboard(){
 function loadDashTonight(today){
   if(!el('pg-d')||!userName)return;
   var todayDates=getWeekDates(0),todayIdx=new Date().getDay()-1;if(todayIdx<0)todayIdx=6;
-  if(!window._p26PS){window._p26PS=true;console.log('[P2.6] FIRST planner read START @'+(window._p26Now?_p26Now():'?')+'ms');window._p26PSt=performance.now();}
+  if(!window._vPS){window._vPS=true;window._vPSt=performance.now();console.log('[VALIDATE] planner read START @'+(window._vNow?_vNow():'?')+'ms');}
   db.ref('planner/'+dKey(todayDates[0])+'/'+todayIdx+'/D').once('value',function(snap){
-    if(!window._p26PD){window._p26PD=true;console.log('[P2.6] FIRST planner read COMPLETE @'+(window._p26Now?_p26Now():'?')+'ms  duration='+(performance.now()-window._p26PSt).toFixed(1)+'ms');if(window._p26SignalRead)window._p26SignalRead('planner');}
+    if(!window._vPD){window._vPD=true;console.log('[VALIDATE] planner read COMPLETE @'+(window._vNow?_vNow():'?')+'ms  duration='+(performance.now()-window._vPSt).toFixed(1)+'ms');}
     if(!el('pg-d')||!userName)return;
     var dinners=[];snap.forEach(function(c){dinners.push(c.val());});
     var winner=null,maxV=0;dinners.forEach(function(m){var vc=m.votes?Object.keys(m.votes).length:0;if(vc>=maxV){maxV=vc;winner=m;}});
@@ -80,9 +80,9 @@ function updateDashTonight(dinners,winner,dqData,myAnswer,answersList){
 // ── Load chat independently — does not block dashboard render ─────────────
 function loadDashChat(lastRead){
   if(!el('pg-d')||!userName)return;
-  if(!window._p26CS){window._p26CS=true;console.log('[P2.6] FIRST chatGroups read START @'+(window._p26Now?_p26Now():'?')+'ms');window._p26CSt=performance.now();}
+  if(!window._vCS){window._vCS=true;window._vCSt=performance.now();console.log('[VALIDATE] chatGroups read START @'+(window._vNow?_vNow():'?')+'ms');}
   db.ref('chatGroups').once('value',function(grpSnap){
-    if(!window._p26CD){window._p26CD=true;console.log('[P2.6] FIRST chatGroups read COMPLETE @'+(window._p26Now?_p26Now():'?')+'ms  duration='+(performance.now()-window._p26CSt).toFixed(1)+'ms');if(window._p26SignalRead)window._p26SignalRead('chat');}
+    if(!window._vCD){window._vCD=true;console.log('[VALIDATE] chatGroups read COMPLETE @'+(window._vNow?_vNow():'?')+'ms  duration='+(performance.now()-window._vCSt).toFixed(1)+'ms');}
     if(!el('pg-d')||!userName)return;
     var myGroups=['family'];
     grpSnap.forEach(function(c){var g=c.val();if(g.members&&g.members[userName])myGroups.push(g.id);});
