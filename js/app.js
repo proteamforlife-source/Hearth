@@ -17,7 +17,7 @@ function switchTab(id){
   tabs.forEach(function(t){el('pg-'+t).classList.remove('on');el('tb-'+t).classList.remove('on');});
   el('pg-'+id).classList.add('on');el('tb-'+id).classList.add('on');
   if(id==='p'){renderPlanner();setupPlannerListener();}
-  if(id==='d')renderDashboard('switchTab');
+  if(id==='d')renderDashboard();
   if(id==='c')renderCalendar();
   if(id==='m')renderMyPage();
   if(id==='b')renderBills();
@@ -27,15 +27,15 @@ function init(){
 db.ref('members').on('value',function(snap){
       members={};snap.forEach(function(c){members[c.key]=c.val();});renderMemberList();if(userName)buildChatTabs();
     if(!userName){var sn=localStorage.getItem('fk_name'),sc=localStorage.getItem('fk_color')||'#B8967E';
-    if(sn&&members[sn]){userName=sn;userColor=sc;el('authScreen').classList.add('h');el('userPill').innerHTML=avt(sn,sc,20)+'<span>'+esc(sn)+'</span>';loadPersonal();buildPresetTags();buildChatTabs();listenToConvo('family');db.ref('members/'+sn+'/lastSeen').set(Date.now());switchTab('d');setTimeout(function(){renderDashboard('members-timeout400');},400);}}
-if(el('pg-d').classList.contains('on')&&userName)renderDashboard('members-inline');
+    if(sn&&members[sn]){userName=sn;userColor=sc;el('authScreen').classList.add('h');el('userPill').innerHTML=avt(sn,sc,20)+'<span>'+esc(sn)+'</span>';loadPersonal();buildPresetTags();buildChatTabs();listenToConvo('family');db.ref('members/'+sn+'/lastSeen').set(Date.now());switchTab('d');setTimeout(renderDashboard,400);}}
+if(el('pg-d').classList.contains('on')&&userName)renderDashboard();
   });
-  db.ref('recipes').on('value',function(snap){recipes=[];testRecipes=[];snap.forEach(function(c){var v=c.val();if(v.testing)testRecipes.push(v);else recipes.push(v);});recipes.reverse();testRecipes.reverse();renderRecipes();buildCatFilter();buildTagFilter();renderTestRecipes();if(el('pg-d').classList.contains('on')&&userName)renderDashboard('recipes');});
-  db.ref('events').on('value',function(snap){events=[];snap.forEach(function(c){events.push(c.val());});renderEvents();if(el('pg-d').classList.contains('on')&&userName)renderDashboard('events');});
+  db.ref('recipes').on('value',function(snap){recipes=[];testRecipes=[];snap.forEach(function(c){var v=c.val();if(v.testing)testRecipes.push(v);else recipes.push(v);});recipes.reverse();testRecipes.reverse();renderRecipes();buildCatFilter();buildTagFilter();renderTestRecipes();if(el('pg-d').classList.contains('on')&&userName)renderDashboard();});
+  db.ref('events').on('value',function(snap){events=[];snap.forEach(function(c){events.push(c.val());});renderEvents();if(el('pg-d').classList.contains('on')&&userName)renderDashboard();});
   db.ref('shopping').on('value',function(snap){shopItems=[];snap.forEach(function(c){shopItems.push(c.val());});renderShopping();});
-  db.ref('bills').on('value',function(snap){bills=[];snap.forEach(function(c){bills.push(c.val());});renderBills();if(el('pg-d').classList.contains('on')&&userName)renderDashboard('bills');});
+  db.ref('bills').on('value',function(snap){bills=[];snap.forEach(function(c){bills.push(c.val());});renderBills();if(el('pg-d').classList.contains('on')&&userName)renderDashboard();});
   attachDinnerQListener();
-  db.ref('planner/'+dKey(getWeekDates(0)[0])).on('value',function(){if(el('pg-d').classList.contains('on')&&userName)renderDashboard('planner-listener8');});
+  db.ref('planner/'+dKey(getWeekDates(0)[0])).on('value',function(){if(el('pg-d').classList.contains('on')&&userName)renderDashboard();});
   setupPlannerListener();
   scheduleMidnightRollover();
 }
@@ -44,7 +44,7 @@ var dinnerQRef=null;
 function attachDinnerQListener(){
   if(dinnerQRef)dinnerQRef.off();
   dinnerQRef=db.ref('dinnerQ/'+todayKey());
-  dinnerQRef.on('value',function(){if(el('pg-d').classList.contains('on')&&userName){if(document.querySelector('.dinner-q'))refreshDinnerQ();else renderDashboard('dinnerQ');}});
+  dinnerQRef.on('value',function(){if(el('pg-d').classList.contains('on')&&userName){if(document.querySelector('.dinner-q'))refreshDinnerQ();else renderDashboard();}});
 }
 
 function scheduleMidnightRollover(){
@@ -53,7 +53,7 @@ function scheduleMidnightRollover(){
   var msUntilMidnight=midnight-now;
   setTimeout(function(){
     attachDinnerQListener();
-    if(userName)renderDashboard('midnight');
+    if(userName)renderDashboard();
     scheduleMidnightRollover();
   },msUntilMidnight);
 }
@@ -216,8 +216,8 @@ var saver=t.closest('[data-saver]');if(saver){var rid2=saver.dataset.saver;attem
 
   var addmeal=t.closest('[data-addmeal]');if(addmeal){if(!userName){alert('Sign in first!');return;}var fromDetail=addmeal.dataset.fromdetail?true:false;mealCtx={wk:addmeal.dataset.wk,di:addmeal.dataset.di,slot:addmeal.dataset.slot,recipeId:null,recipeType:null,fromDetail:fromDetail,dk:addmeal.dataset.dk||''};el('mealModTitle').textContent='Suggest for '+DAYS[parseInt(addmeal.dataset.di)];el('mealModInp').value='';el('mealModUrl').value='';el('mealSugList').innerHTML='';el('mealSugList').style.display='none';if(fromDetail){el('dayDetailMod').classList.add('h');}el('mealMod').classList.remove('h');setTimeout(function(){el('mealModInp').focus();},80);return;}
   var mealrec=t.closest('[data-mealrec]');if(mealrec){el('mealModInp').value=mealrec.dataset.mealrec;if(mealrec.dataset.mealrecid){mealCtx.recipeId=mealrec.dataset.mealrecid;mealCtx.recipeType=mealrec.dataset.mealrectype||'recipe';}el('mealSugList').innerHTML='';el('mealSugList').style.display='none';return;}
-  var vote=t.closest('[data-vote]');if(vote){if(!userName)return;var vref=db.ref('planner/'+vote.dataset.wk+'/'+vote.dataset.di+'/'+vote.dataset.slot+'/'+vote.dataset.vote+'/votes/'+userName);vref.once('value',function(s){if(s.val())vref.remove();else vref.set(true);setTimeout(function(){if(el('pg-d').classList.contains('on'))renderDashboard('vote');if(!el('dayDetailMod').classList.contains('h'))refreshDayDetail(parseInt(vote.dataset.di),vote.dataset.wk,'');},500);});return;}
-  var cook=t.closest('[data-cook]');if(cook){if(!userName)return;var cref=db.ref('planner/'+cook.dataset.wk+'/'+cook.dataset.di+'/'+cook.dataset.slot+'/'+cook.dataset.cook+'/cooker');cref.once('value',function(s){cref.set(s.val()===userName?'':userName);setTimeout(function(){if(el('pg-d').classList.contains('on'))renderDashboard('cook');if(el('pg-p').classList.contains('on'))renderPlanner();if(!el('dayDetailMod').classList.contains('h'))refreshDayDetail(parseInt(cook.dataset.di),cook.dataset.wk,'');},400);});return;}
+  var vote=t.closest('[data-vote]');if(vote){if(!userName)return;var vref=db.ref('planner/'+vote.dataset.wk+'/'+vote.dataset.di+'/'+vote.dataset.slot+'/'+vote.dataset.vote+'/votes/'+userName);vref.once('value',function(s){if(s.val())vref.remove();else vref.set(true);setTimeout(function(){if(el('pg-d').classList.contains('on'))renderDashboard();if(!el('dayDetailMod').classList.contains('h'))refreshDayDetail(parseInt(vote.dataset.di),vote.dataset.wk,'');},500);});return;}
+  var cook=t.closest('[data-cook]');if(cook){if(!userName)return;var cref=db.ref('planner/'+cook.dataset.wk+'/'+cook.dataset.di+'/'+cook.dataset.slot+'/'+cook.dataset.cook+'/cooker');cref.once('value',function(s){cref.set(s.val()===userName?'':userName);setTimeout(function(){if(el('pg-d').classList.contains('on'))renderDashboard();if(el('pg-p').classList.contains('on'))renderPlanner();if(!el('dayDetailMod').classList.contains('h'))refreshDayDetail(parseInt(cook.dataset.di),cook.dataset.wk,'');},400);});return;}
   var delmeal=t.closest('[data-delmeal]');if(delmeal){var dwk=delmeal.dataset.wk,ddi=parseInt(delmeal.dataset.di),dslot=delmeal.dataset.slot,dmid=delmeal.dataset.delmeal;db.ref('planner/'+dwk+'/'+ddi+'/'+dslot+'/'+dmid).remove(function(){if(!el('dayDetailMod').classList.contains('h')){refreshDayDetail(ddi,dwk,'');}});return;}
   // Week view day card tap — switch to day view for that day
   var weeknav=t.closest('[data-weeknav]');
