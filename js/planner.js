@@ -67,7 +67,9 @@ function setupPlannerListener() {
   }
   var dates = getWeekDates(wkOff), wk = dKey(dates[0]);
   plannerRef = db.ref('planner/' + wk);
+  window._hyPbT=performance.now();console.log('[HYDRATE] ATTACH planner-B path=planner/'+wk+' @'+(window._hyNow?_hyNow():'?')+'ms');
   plannerRef.on('value', function (snap) {
+    if(!window._hyPb){window._hyPb=1;var _hbt=performance.now();console.log('[HYDRATE] FIRST planner-B @'+(window._hyNow?_hyNow():'?')+'ms dur='+(_hbt-window._hyPbT).toFixed(1)+'ms len='+(window._hyLen?_hyLen(snap.val()):'?')+' count='+(window._hyCount?_hyCount(snap.val()):'?'));}
     var wkData = snap.val() || {};
     if (plannerView === 'day') {
       var dayDate = new Date(); dayDate.setDate(dayDate.getDate() + planDayOffset); dayDate.setHours(0,0,0,0);

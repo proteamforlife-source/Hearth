@@ -1,9 +1,9 @@
 // ─── DASHBOARD.JS ────────────────────────────────────────────────────────
-window._rdN=window._rdN||0;window._rdT0=window._rdT0||performance.now();
+window._rdN=window._rdN||0;
 function renderDashboard(_src){
   if(!el('pg-d')||!userName)return;
   window._rdN++;
-  console.log('[STAMPEDE] renderDashboard #'+window._rdN+' caller='+(_src||'untagged')+' @'+(performance.now()-window._rdT0).toFixed(1)+'ms  (WIPES dashContent)');
+  console.log('[HYDRATE] renderDashboard #'+window._rdN+' caller='+(_src||'untagged')+' @'+(window._hyNow?_hyNow():'?')+'ms');
   el('dashContent').innerHTML='<div style="text-align:center;padding:30px;color:var(--muted)">Loading...</div>';
   var today=todayKey();
   var nextEv=null;var sorted=events.slice().sort(function(a,b){return(a.date||'9999')<(b.date||'9999')?-1:1;});for(var i=0;i<sorted.length;i++){if(sorted[i].date>=today){nextEv=sorted[i];break;}}
@@ -26,7 +26,9 @@ function renderDashboard(_src){
 function loadDashTonight(today){
   if(!el('pg-d')||!userName)return;
   var todayDates=getWeekDates(0),todayIdx=new Date().getDay()-1;if(todayIdx<0)todayIdx=6;
+  if(!window._hyDpS){window._hyDpS=1;window._hyDpT=performance.now();console.log('[HYDRATE] dash-planner .once START @'+(window._hyNow?_hyNow():'?')+'ms');}
   db.ref('planner/'+dKey(todayDates[0])+'/'+todayIdx+'/D').once('value',function(snap){
+    if(!window._hyDpD){window._hyDpD=1;console.log('[HYDRATE] dash-planner .once COMPLETE @'+(window._hyNow?_hyNow():'?')+'ms dur='+(performance.now()-window._hyDpT).toFixed(1)+'ms');}
     if(!el('pg-d')||!userName)return;
     var dinners=[];snap.forEach(function(c){dinners.push(c.val());});
     var winner=null,maxV=0;dinners.forEach(function(m){var vc=m.votes?Object.keys(m.votes).length:0;if(vc>=maxV){maxV=vc;winner=m;}});
@@ -81,7 +83,9 @@ function updateDashTonight(dinners,winner,dqData,myAnswer,answersList){
 // ── Load chat independently — does not block dashboard render ─────────────
 function loadDashChat(lastRead){
   if(!el('pg-d')||!userName)return;
+  if(!window._hyDcS){window._hyDcS=1;window._hyDcT=performance.now();console.log('[HYDRATE] dash-chatGroups .once START @'+(window._hyNow?_hyNow():'?')+'ms');}
   db.ref('chatGroups').once('value',function(grpSnap){
+    if(!window._hyDcD){window._hyDcD=1;console.log('[HYDRATE] dash-chatGroups .once COMPLETE @'+(window._hyNow?_hyNow():'?')+'ms dur='+(performance.now()-window._hyDcT).toFixed(1)+'ms');}
     if(!el('pg-d')||!userName)return;
     var myGroups=['family'];
     grpSnap.forEach(function(c){var g=c.val();if(g.members&&g.members[userName])myGroups.push(g.id);});

@@ -5,6 +5,9 @@
 var FB={apiKey:"AIzaSyA-JVr7hgGJZvlRWIA3RHWZ6SdzIkB5ngw",authDomain:"family-kitchen-628cb.firebaseapp.com",databaseURL:"https://family-kitchen-628cb-default-rtdb.asia-southeast1.firebasedatabase.app",projectId:"family-kitchen-628cb",storageBucket:"family-kitchen-628cb.firebasestorage.app",messagingSenderId:"1033585168692",appId:"1:1033585168692:web:d0482fdfe9996c8c6c1561"};
 firebase.initializeApp(FB);
 var db=firebase.database();
+window._hyT0=performance.now();function _hyNow(){return (performance.now()-window._hyT0).toFixed(1);}
+function _hyLen(v){try{return v==null?0:JSON.stringify(v).length;}catch(e){return -1;}}
+function _hyCount(v){try{return v&&typeof v==='object'?Object.keys(v).length:0;}catch(e){return 0;}}
 
 // ── Deferred-startup scheduler ──────────────────────────────────────────
 // Attaches non-essential startup listeners on the NEXT MACROTASK, after the

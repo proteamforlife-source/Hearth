@@ -2,7 +2,7 @@
 // KEY CHANGE: loadPersonal now triggers planner re-render when planner tab is active
 // Planner has its own Firebase listener — personal writes must not trigger planner rerenders
 // future: when personal context summaries land in day detail, wire them via plannerDetailCtx refresh only
-var personalRef=null;function loadPersonal(){if(!userName)return;if(personalRef)personalRef.off();personalRef=db.ref('personal/'+userName);personalRef.on('value',function(snap){personalData=snap.val()||{};if(el('pg-m').classList.contains('on'))renderMyPage();if(el('pg-d').classList.contains('on'))renderDashboard('loadPersonal');if(el('pg-c').classList.contains('on'))renderCalendar();});}
+var personalRef=null;function loadPersonal(){if(!userName)return;if(personalRef)personalRef.off();personalRef=db.ref('personal/'+userName);window._hyPeT=performance.now();console.log('[HYDRATE] ATTACH personal path=personal/'+userName+' @'+(window._hyNow?_hyNow():'?')+'ms');personalRef.on('value',function(snap){if(!window._hyPe){window._hyPe=1;var _het=performance.now();console.log('[HYDRATE] FIRST personal @'+(window._hyNow?_hyNow():'?')+'ms dur='+(_het-window._hyPeT).toFixed(1)+'ms len='+(window._hyLen?_hyLen(snap.val()):'?')+' count='+(window._hyCount?_hyCount(snap.val()):'?'));}personalData=snap.val()||{};if(el('pg-m').classList.contains('on'))renderMyPage();if(el('pg-d').classList.contains('on'))renderDashboard('loadPersonal');if(el('pg-c').classList.contains('on'))renderCalendar();});}
 function savePers(path,val){if(!userName)return;db.ref('personal/'+userName+'/'+path).set(val);}
 
 function renderMyPage(){

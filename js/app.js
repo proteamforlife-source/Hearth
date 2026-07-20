@@ -28,16 +28,17 @@ var chatStartupReady=false;
 function attachDeferredListeners(){
   if(_deferredAttached)return;
   _deferredAttached=true;
+  console.log('[HYDRATE] === deferred batch ATTACH @'+_hyNow()+'ms ===');
   loadPersonal();
   buildChatTabs();
   listenToConvo('family');
   chatStartupReady=true;
-  db.ref('recipes').on('value',function(snap){recipes=[];testRecipes=[];snap.forEach(function(c){var v=c.val();if(v.testing)testRecipes.push(v);else recipes.push(v);});recipes.reverse();testRecipes.reverse();renderRecipes();buildCatFilter();buildTagFilter();renderTestRecipes();if(el('pg-d').classList.contains('on')&&userName)renderDashboard('recipes');});
-  db.ref('events').on('value',function(snap){events=[];snap.forEach(function(c){events.push(c.val());});renderEvents();if(el('pg-d').classList.contains('on')&&userName)renderDashboard('events');});
-  db.ref('shopping').on('value',function(snap){shopItems=[];snap.forEach(function(c){shopItems.push(c.val());});renderShopping();});
-  db.ref('bills').on('value',function(snap){bills=[];snap.forEach(function(c){bills.push(c.val());});renderBills();if(el('pg-d').classList.contains('on')&&userName)renderDashboard('bills');});
+  console.log('[HYDRATE] ATTACH recipes path=recipes @'+_hyNow()+'ms');window._hyRecT=performance.now();db.ref('recipes').on('value',function(snap){if(!window._hyRec){window._hyRec=1;var _t=performance.now();console.log('[HYDRATE] FIRST recipes @'+_hyNow()+'ms dur='+(_t-window._hyRecT).toFixed(1)+'ms len='+_hyLen(snap.val())+' count='+_hyCount(snap.val()));}recipes=[];testRecipes=[];snap.forEach(function(c){var v=c.val();if(v.testing)testRecipes.push(v);else recipes.push(v);});recipes.reverse();testRecipes.reverse();renderRecipes();buildCatFilter();buildTagFilter();renderTestRecipes();if(el('pg-d').classList.contains('on')&&userName)renderDashboard('recipes');});
+  console.log('[HYDRATE] ATTACH events path=events @'+_hyNow()+'ms');window._hyEvT=performance.now();db.ref('events').on('value',function(snap){if(!window._hyEv){window._hyEv=1;var _t=performance.now();console.log('[HYDRATE] FIRST events @'+_hyNow()+'ms dur='+(_t-window._hyEvT).toFixed(1)+'ms len='+_hyLen(snap.val())+' count='+_hyCount(snap.val()));}events=[];snap.forEach(function(c){events.push(c.val());});renderEvents();if(el('pg-d').classList.contains('on')&&userName)renderDashboard('events');});
+  console.log('[HYDRATE] ATTACH shopping path=shopping @'+_hyNow()+'ms');window._hyShT=performance.now();db.ref('shopping').on('value',function(snap){if(!window._hySh){window._hySh=1;var _t=performance.now();console.log('[HYDRATE] FIRST shopping @'+_hyNow()+'ms dur='+(_t-window._hyShT).toFixed(1)+'ms len='+_hyLen(snap.val())+' count='+_hyCount(snap.val()));}shopItems=[];snap.forEach(function(c){shopItems.push(c.val());});renderShopping();});
+  console.log('[HYDRATE] ATTACH bills path=bills @'+_hyNow()+'ms');window._hyBiT=performance.now();db.ref('bills').on('value',function(snap){if(!window._hyBi){window._hyBi=1;var _t=performance.now();console.log('[HYDRATE] FIRST bills @'+_hyNow()+'ms dur='+(_t-window._hyBiT).toFixed(1)+'ms len='+_hyLen(snap.val())+' count='+_hyCount(snap.val()));}bills=[];snap.forEach(function(c){bills.push(c.val());});renderBills();if(el('pg-d').classList.contains('on')&&userName)renderDashboard('bills');});
   attachDinnerQListener();
-  db.ref('planner/'+dKey(getWeekDates(0)[0])).on('value',function(){if(el('pg-d').classList.contains('on')&&userName)renderDashboard('planner-A');});
+  console.log('[HYDRATE] ATTACH planner-A path=planner/'+dKey(getWeekDates(0)[0])+' @'+_hyNow()+'ms');window._hyPaT=performance.now();db.ref('planner/'+dKey(getWeekDates(0)[0])).on('value',function(_s){if(!window._hyPa){window._hyPa=1;var _t=performance.now();console.log('[HYDRATE] FIRST planner-A @'+_hyNow()+'ms dur='+(_t-window._hyPaT).toFixed(1)+'ms len='+_hyLen(_s.val())+' count='+_hyCount(_s.val()));}if(el('pg-d').classList.contains('on')&&userName)renderDashboard('planner-A');});
   setupPlannerListener();
 }
 
@@ -55,7 +56,7 @@ var dinnerQRef=null;
 function attachDinnerQListener(){
   if(dinnerQRef)dinnerQRef.off();
   dinnerQRef=db.ref('dinnerQ/'+todayKey());
-  dinnerQRef.on('value',function(){if(el('pg-d').classList.contains('on')&&userName){if(document.querySelector('.dinner-q'))refreshDinnerQ();else renderDashboard('dinnerQ');}});
+  window._hyDqT=performance.now();console.log('[HYDRATE] ATTACH dinnerQ path=dinnerQ @'+_hyNow()+'ms');dinnerQRef.on('value',function(_s){if(!window._hyDq){window._hyDq=1;var _t=performance.now();console.log('[HYDRATE] FIRST dinnerQ @'+_hyNow()+'ms dur='+(_t-window._hyDqT).toFixed(1)+'ms len='+_hyLen(_s.val())+' count='+_hyCount(_s.val()));}if(el('pg-d').classList.contains('on')&&userName){if(document.querySelector('.dinner-q'))refreshDinnerQ();else renderDashboard('dinnerQ');}});
 }
 
 function scheduleMidnightRollover(){
@@ -64,7 +65,7 @@ function scheduleMidnightRollover(){
   var msUntilMidnight=midnight-now;
   setTimeout(function(){
     attachDinnerQListener();
-    if(userName)renderDashboard('midnight');
+    if(userName)renderDashboard();
     scheduleMidnightRollover();
   },msUntilMidnight);
 }
@@ -227,8 +228,8 @@ var saver=t.closest('[data-saver]');if(saver){var rid2=saver.dataset.saver;attem
 
   var addmeal=t.closest('[data-addmeal]');if(addmeal){if(!userName){alert('Sign in first!');return;}var fromDetail=addmeal.dataset.fromdetail?true:false;mealCtx={wk:addmeal.dataset.wk,di:addmeal.dataset.di,slot:addmeal.dataset.slot,recipeId:null,recipeType:null,fromDetail:fromDetail,dk:addmeal.dataset.dk||''};el('mealModTitle').textContent='Suggest for '+DAYS[parseInt(addmeal.dataset.di)];el('mealModInp').value='';el('mealModUrl').value='';el('mealSugList').innerHTML='';el('mealSugList').style.display='none';if(fromDetail){el('dayDetailMod').classList.add('h');}el('mealMod').classList.remove('h');setTimeout(function(){el('mealModInp').focus();},80);return;}
   var mealrec=t.closest('[data-mealrec]');if(mealrec){el('mealModInp').value=mealrec.dataset.mealrec;if(mealrec.dataset.mealrecid){mealCtx.recipeId=mealrec.dataset.mealrecid;mealCtx.recipeType=mealrec.dataset.mealrectype||'recipe';}el('mealSugList').innerHTML='';el('mealSugList').style.display='none';return;}
-  var vote=t.closest('[data-vote]');if(vote){if(!userName)return;var vref=db.ref('planner/'+vote.dataset.wk+'/'+vote.dataset.di+'/'+vote.dataset.slot+'/'+vote.dataset.vote+'/votes/'+userName);vref.once('value',function(s){if(s.val())vref.remove();else vref.set(true);setTimeout(function(){if(el('pg-d').classList.contains('on'))renderDashboard('vote');if(!el('dayDetailMod').classList.contains('h'))refreshDayDetail(parseInt(vote.dataset.di),vote.dataset.wk,'');},500);});return;}
-  var cook=t.closest('[data-cook]');if(cook){if(!userName)return;var cref=db.ref('planner/'+cook.dataset.wk+'/'+cook.dataset.di+'/'+cook.dataset.slot+'/'+cook.dataset.cook+'/cooker');cref.once('value',function(s){cref.set(s.val()===userName?'':userName);setTimeout(function(){if(el('pg-d').classList.contains('on'))renderDashboard('cook');if(el('pg-p').classList.contains('on'))renderPlanner();if(!el('dayDetailMod').classList.contains('h'))refreshDayDetail(parseInt(cook.dataset.di),cook.dataset.wk,'');},400);});return;}
+  var vote=t.closest('[data-vote]');if(vote){if(!userName)return;var vref=db.ref('planner/'+vote.dataset.wk+'/'+vote.dataset.di+'/'+vote.dataset.slot+'/'+vote.dataset.vote+'/votes/'+userName);vref.once('value',function(s){if(s.val())vref.remove();else vref.set(true);setTimeout(function(){if(el('pg-d').classList.contains('on'))renderDashboard();if(!el('dayDetailMod').classList.contains('h'))refreshDayDetail(parseInt(vote.dataset.di),vote.dataset.wk,'');},500);});return;}
+  var cook=t.closest('[data-cook]');if(cook){if(!userName)return;var cref=db.ref('planner/'+cook.dataset.wk+'/'+cook.dataset.di+'/'+cook.dataset.slot+'/'+cook.dataset.cook+'/cooker');cref.once('value',function(s){cref.set(s.val()===userName?'':userName);setTimeout(function(){if(el('pg-d').classList.contains('on'))renderDashboard();if(el('pg-p').classList.contains('on'))renderPlanner();if(!el('dayDetailMod').classList.contains('h'))refreshDayDetail(parseInt(cook.dataset.di),cook.dataset.wk,'');},400);});return;}
   var delmeal=t.closest('[data-delmeal]');if(delmeal){var dwk=delmeal.dataset.wk,ddi=parseInt(delmeal.dataset.di),dslot=delmeal.dataset.slot,dmid=delmeal.dataset.delmeal;db.ref('planner/'+dwk+'/'+ddi+'/'+dslot+'/'+dmid).remove(function(){if(!el('dayDetailMod').classList.contains('h')){refreshDayDetail(ddi,dwk,'');}});return;}
   // Week view day card tap — switch to day view for that day
   var weeknav=t.closest('[data-weeknav]');
