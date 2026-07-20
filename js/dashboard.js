@@ -1,11 +1,11 @@
 // ─── DASHBOARD.JS ────────────────────────────────────────────────────────
 // [HRT] TEMPORARY RUNTIME VALIDATION INSTRUMENTATION — remove after Pass 2.5
-var _hrtRenderN=0, _hrtActive=0, _hrtT0=(window._hrtT0||(window._hrtT0=performance.now()));
+var _hrtRenderN=0, _hrtActive=0, _hrtPlannerInFlight=0, _hrtChatInFlight=0, _hrtT0=(window._hrtT0||(window._hrtT0=performance.now()));
 function _hrtNow(){return (performance.now()-window._hrtT0).toFixed(1);}
 function renderDashboard(_caller){
   if(!el('pg-d')||!userName)return;
   _hrtRenderN++; var _rn=_hrtRenderN;
-  console.log('[HRT] renderDashboard #'+_rn+' ENTER @'+_hrtNow()+'ms caller='+(_caller||'untagged')+' activeRendersAlready='+_hrtActive);
+  console.log('[HRT] renderDashboard #'+_rn+' ENTER @'+_hrtNow()+'ms caller='+(_caller||'untagged')+' activeRendersAlready='+_hrtActive+' plannerReadsInFlight='+_hrtPlannerInFlight+' chatReadsInFlight='+_hrtChatInFlight);
   _hrtActive++;
   el('dashContent').innerHTML='<div style="text-align:center;padding:30px;color:var(--muted)">Loading...</div>';
   var today=todayKey();
@@ -33,9 +33,11 @@ function loadDashTonight(today,_rn){
   if(!el('pg-d')||!userName)return;
   var todayDates=getWeekDates(0),todayIdx=new Date().getDay()-1;if(todayIdx<0)todayIdx=6;
   var _pPath='planner/'+dKey(todayDates[0])+'/'+todayIdx+'/D', _pStart=performance.now();
-  console.log('[HRT] loadDashTonight START render#'+_rn+' plannerPath='+_pPath+' @'+_hrtNow()+'ms');
+  _hrtPlannerInFlight++;
+  console.log('[HRT] loadDashTonight START render#'+_rn+' plannerPath='+_pPath+' @'+_hrtNow()+'ms plannerInFlightNow='+_hrtPlannerInFlight);
   db.ref(_pPath).once('value',function(snap){
-    console.log('[HRT] planner READ RETURN render#'+_rn+' @'+_hrtNow()+'ms elapsed='+(performance.now()-_pStart).toFixed(1)+'ms');
+    _hrtPlannerInFlight--;
+    console.log('[HRT] planner READ RETURN render#'+_rn+' @'+_hrtNow()+'ms elapsed='+(performance.now()-_pStart).toFixed(1)+'ms plannerInFlightRemaining='+_hrtPlannerInFlight);
     if(!el('pg-d')||!userName)return;
     var dinners=[];snap.forEach(function(c){dinners.push(c.val());});
     var winner=null,maxV=0;dinners.forEach(function(m){var vc=m.votes?Object.keys(m.votes).length:0;if(vc>=maxV){maxV=vc;winner=m;}});
@@ -95,9 +97,11 @@ function updateDashTonight(dinners,winner,dqData,myAnswer,answersList){
 function loadDashChat(lastRead,_rn){
   if(!el('pg-d')||!userName)return;
   var _cgStart=performance.now();
-  console.log('[HRT] loadDashChat START render#'+_rn+' chatGroups .once() @'+_hrtNow()+'ms');
+  _hrtChatInFlight++;
+  console.log('[HRT] loadDashChat START render#'+_rn+' chatGroups .once() @'+_hrtNow()+'ms chatInFlightNow='+_hrtChatInFlight);
   db.ref('chatGroups').once('value',function(grpSnap){
-    console.log('[HRT] chatGroups READ RETURN render#'+_rn+' @'+_hrtNow()+'ms elapsed='+(performance.now()-_cgStart).toFixed(1)+'ms');
+    _hrtChatInFlight--;
+    console.log('[HRT] chatGroups READ RETURN render#'+_rn+' @'+_hrtNow()+'ms elapsed='+(performance.now()-_cgStart).toFixed(1)+'ms chatInFlightRemaining='+_hrtChatInFlight);
     if(!el('pg-d')||!userName)return;
     var myGroups=['family'];
     grpSnap.forEach(function(c){var g=c.val();if(g.members&&g.members[userName])myGroups.push(g.id);});
