@@ -1,6 +1,9 @@
 // ─── DASHBOARD.JS ────────────────────────────────────────────────────────
-function renderDashboard(){
+window._rdN=window._rdN||0;window._rdT0=window._rdT0||performance.now();
+function renderDashboard(_src){
   if(!el('pg-d')||!userName)return;
+  window._rdN++;
+  console.log('[STAMPEDE] renderDashboard #'+window._rdN+' caller='+(_src||'untagged')+' @'+(performance.now()-window._rdT0).toFixed(1)+'ms  (WIPES dashContent)');
   el('dashContent').innerHTML='<div style="text-align:center;padding:30px;color:var(--muted)">Loading...</div>';
   var today=todayKey();
   var nextEv=null;var sorted=events.slice().sort(function(a,b){return(a.date||'9999')<(b.date||'9999')?-1:1;});for(var i=0;i<sorted.length;i++){if(sorted[i].date>=today){nextEv=sorted[i];break;}}
