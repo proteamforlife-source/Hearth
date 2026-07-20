@@ -1,6 +1,12 @@
 // ─── DASHBOARD.JS ────────────────────────────────────────────────────────
-function renderDashboard(){
+// [HRT] TEMPORARY RUNTIME VALIDATION INSTRUMENTATION — remove after Pass 2.5
+var _hrtRenderN=0, _hrtActive=0, _hrtT0=(window._hrtT0||(window._hrtT0=performance.now()));
+function _hrtNow(){return (performance.now()-window._hrtT0).toFixed(1);}
+function renderDashboard(_caller){
   if(!el('pg-d')||!userName)return;
+  _hrtRenderN++; var _rn=_hrtRenderN;
+  console.log('[HRT] renderDashboard #'+_rn+' ENTER @'+_hrtNow()+'ms caller='+(_caller||'untagged')+' activeRendersAlready='+_hrtActive);
+  _hrtActive++;
   el('dashContent').innerHTML='<div style="text-align:center;padding:30px;color:var(--muted)">Loading...</div>';
   var today=todayKey();
   var nextEv=null;var sorted=events.slice().sort(function(a,b){return(a.date||'9999')<(b.date||'9999')?-1:1;});for(var i=0;i<sorted.length;i++){if(sorted[i].date>=today){nextEv=sorted[i];break;}}
@@ -14,24 +20,34 @@ function renderDashboard(){
     return d>=now&&d<=weekEnd;
   }).sort(function(a,b){return a.due<b.due?-1:1;});
   // Render dashboard immediately — planner and dinnerQ load independently
+  console.log('[HRT] render #'+_rn+' dashContent WIPE+rebuild @'+_hrtNow()+'ms');
   buildDash(today,todayItems,nextEv,lastRead,dueSoon);
-  loadDashTonight(today);
-  loadDashChat(lastRead);
+  loadDashTonight(today,_rn);
+  loadDashChat(lastRead,_rn);
+  _hrtActive--;
+  console.log('[HRT] renderDashboard #'+_rn+' EXIT(sync) @'+_hrtNow()+'ms activeRemaining='+_hrtActive);
 }
 
 // ── Load planner dinner + dinnerQ independently — does not block render ───
-function loadDashTonight(today){
+function loadDashTonight(today,_rn){
   if(!el('pg-d')||!userName)return;
   var todayDates=getWeekDates(0),todayIdx=new Date().getDay()-1;if(todayIdx<0)todayIdx=6;
-  db.ref('planner/'+dKey(todayDates[0])+'/'+todayIdx+'/D').once('value',function(snap){
+  var _pPath='planner/'+dKey(todayDates[0])+'/'+todayIdx+'/D', _pStart=performance.now();
+  console.log('[HRT] loadDashTonight START render#'+_rn+' plannerPath='+_pPath+' @'+_hrtNow()+'ms');
+  db.ref(_pPath).once('value',function(snap){
+    console.log('[HRT] planner READ RETURN render#'+_rn+' @'+_hrtNow()+'ms elapsed='+(performance.now()-_pStart).toFixed(1)+'ms');
     if(!el('pg-d')||!userName)return;
     var dinners=[];snap.forEach(function(c){dinners.push(c.val());});
     var winner=null,maxV=0;dinners.forEach(function(m){var vc=m.votes?Object.keys(m.votes).length:0;if(vc>=maxV){maxV=vc;winner=m;}});
+    var _dqStart=performance.now();
+    console.log('[HRT] dinnerQ READ START render#'+_rn+' @'+_hrtNow()+'ms');
     db.ref('dinnerQ/'+(today||todayKey())).once('value',function(dqSnap){
+      console.log('[HRT] dinnerQ READ RETURN render#'+_rn+' @'+_hrtNow()+'ms elapsed='+(performance.now()-_dqStart).toFixed(1)+'ms');
       if(!el('pg-d')||!userName)return;
       var dqData=dqSnap.val()||{},myAnswer=dqData[userName]||null;
       var answersList=buildDinnerAnswers(dqData);
       updateDashTonight(dinners,winner,dqData,myAnswer,answersList);
+      console.log('[HRT] Tonight card PATCHED render#'+_rn+' @'+_hrtNow()+'ms');
     });
   });
 }
@@ -76,9 +92,12 @@ function updateDashTonight(dinners,winner,dqData,myAnswer,answersList){
 }
 
 // ── Load chat independently — does not block dashboard render ─────────────
-function loadDashChat(lastRead){
+function loadDashChat(lastRead,_rn){
   if(!el('pg-d')||!userName)return;
+  var _cgStart=performance.now();
+  console.log('[HRT] loadDashChat START render#'+_rn+' chatGroups .once() @'+_hrtNow()+'ms');
   db.ref('chatGroups').once('value',function(grpSnap){
+    console.log('[HRT] chatGroups READ RETURN render#'+_rn+' @'+_hrtNow()+'ms elapsed='+(performance.now()-_cgStart).toFixed(1)+'ms');
     if(!el('pg-d')||!userName)return;
     var myGroups=['family'];
     grpSnap.forEach(function(c){var g=c.val();if(g.members&&g.members[userName])myGroups.push(g.id);});
@@ -86,13 +105,17 @@ function loadDashChat(lastRead){
     var allMsgs=[],pending=myGroups.length;
     if(!pending){updateDashMessages([],lastRead);return;}
     myGroups.forEach(function(cid){
+      var _cStart=performance.now();
+      console.log('[HRT] conversation READ START render#'+_rn+' cid='+cid+' @'+_hrtNow()+'ms');
       db.ref('chats/'+cid).limitToLast(10).once('value',function(msgSnap){
+        console.log('[HRT] conversation READ FINISH render#'+_rn+' cid='+cid+' @'+_hrtNow()+'ms elapsed='+(performance.now()-_cStart).toFixed(1)+'ms');
         msgSnap.forEach(function(c){var m=c.val();m._cid=cid;allMsgs.push(m);});
         pending--;
         if(pending===0){
           allMsgs.sort(function(a,b){return b.ts-a.ts;});
           var unread=allMsgs.filter(function(m){return m.by!==userName&&m.ts>((lastRead&&lastRead[m._cid])||0);});
           updateDashMessages(unread,lastRead);
+          console.log('[HRT] updateDashMessages RAN render#'+_rn+' @'+_hrtNow()+'ms unread='+unread.length);
         }
       });
     });
