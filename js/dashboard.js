@@ -23,7 +23,9 @@ function renderDashboard(){
 function loadDashTonight(today){
   if(!el('pg-d')||!userName)return;
   var todayDates=getWeekDates(0),todayIdx=new Date().getDay()-1;if(todayIdx<0)todayIdx=6;
+  if(!window._p26PlannerStarted){window._p26PlannerStarted=true;console.log('[P2.6] FIRST planner read START @'+(window._p26Now?_p26Now():'?')+'ms');}
   db.ref('planner/'+dKey(todayDates[0])+'/'+todayIdx+'/D').once('value',function(snap){
+    if(!window._p26PlannerDone){window._p26PlannerDone=true;console.log('[P2.6] FIRST planner read COMPLETE @'+(window._p26Now?_p26Now():'?')+'ms');}
     if(!el('pg-d')||!userName)return;
     var dinners=[];snap.forEach(function(c){dinners.push(c.val());});
     var winner=null,maxV=0;dinners.forEach(function(m){var vc=m.votes?Object.keys(m.votes).length:0;if(vc>=maxV){maxV=vc;winner=m;}});
@@ -78,7 +80,9 @@ function updateDashTonight(dinners,winner,dqData,myAnswer,answersList){
 // ── Load chat independently — does not block dashboard render ─────────────
 function loadDashChat(lastRead){
   if(!el('pg-d')||!userName)return;
+  if(!window._p26ChatStarted){window._p26ChatStarted=true;console.log('[P2.6] FIRST chatGroups read START @'+(window._p26Now?_p26Now():'?')+'ms');}
   db.ref('chatGroups').once('value',function(grpSnap){
+    if(!window._p26ChatDone){window._p26ChatDone=true;console.log('[P2.6] FIRST chatGroups read COMPLETE @'+(window._p26Now?_p26Now():'?')+'ms');}
     if(!el('pg-d')||!userName)return;
     var myGroups=['family'];
     grpSnap.forEach(function(c){var g=c.val();if(g.members&&g.members[userName])myGroups.push(g.id);});

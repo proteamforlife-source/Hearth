@@ -3,8 +3,23 @@
 
 // ── Firebase config ──
 var FB={apiKey:"AIzaSyA-JVr7hgGJZvlRWIA3RHWZ6SdzIkB5ngw",authDomain:"family-kitchen-628cb.firebaseapp.com",databaseURL:"https://family-kitchen-628cb-default-rtdb.asia-southeast1.firebasedatabase.app",projectId:"family-kitchen-628cb",storageBucket:"family-kitchen-628cb.firebasestorage.app",messagingSenderId:"1033585168692",appId:"1:1033585168692:web:d0482fdfe9996c8c6c1561"};
+// [P2.6] TEMPORARY CONNECTION-STATE INSTRUMENTATION — remove after Pass 2.6
+window._p26T0 = performance.now();
+function _p26Now(){ return (performance.now()-window._p26T0).toFixed(1); }
+function _p26Env(){ return 'online='+navigator.onLine+' visibility='+document.visibilityState; }
+console.log('[P2.6] script/startup baseline T0 set @0.0ms '+_p26Env());
+console.log('[P2.6] firebase.initializeApp CALLED @'+_p26Now()+'ms');
 firebase.initializeApp(FB);
 var db=firebase.database();
+console.log('[P2.6] db=firebase.database() READY @'+_p26Now()+'ms');
+// Attach .info/connected FIRST — before any app read — to timestamp pure connection state
+console.log('[P2.6] .info/connected listener ATTACH @'+_p26Now()+'ms');
+db.ref('.info/connected').on('value', function(s){
+  console.log('[P2.6] .info/connected = '+s.val()+' @'+_p26Now()+'ms '+_p26Env());
+});
+window.addEventListener('online', function(){ console.log('[P2.6] browser ONLINE event @'+_p26Now()+'ms'); });
+window.addEventListener('offline', function(){ console.log('[P2.6] browser OFFLINE event @'+_p26Now()+'ms'); });
+document.addEventListener('visibilitychange', function(){ console.log('[P2.6] visibility→'+document.visibilityState+' @'+_p26Now()+'ms'); });
 
 // ── App constants ──
 var ADMIN='Mum';
